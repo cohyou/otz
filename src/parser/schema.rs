@@ -32,7 +32,7 @@ where
     #[derive(Clone)]
     enum Decl {
         Theory(Theory),
-        Type(Type),
+        Entity(Type),
         Fkey(Oper),
         Attr(Oper),
         Equation(Equation),
@@ -45,7 +45,7 @@ where
     let equation_parser = equation_decl_parser::<Input>(types, vars, opers);
 
     let decl_parsers = attempt(theory_decl_parser.map(Decl::Theory))
-        .or(attempt(entity_parser.map(Decl::Type)))
+        .or(attempt(entity_parser.map(Decl::Entity)))
         .or(attempt(fkey_parser.map(Decl::Fkey)))
         .or(attempt(attr_parser.map(Decl::Attr)))
         .or(equation_parser.map(Decl::Equation));
@@ -57,7 +57,7 @@ where
         for decl in decls {
             match decl {
                 Decl::Theory(th) => schema.theory = th,
-                Decl::Type(ty) => schema.theory.types.push(ty),
+                Decl::Entity(ty) => schema.entities.push(ty),
                 Decl::Fkey(op) => schema.fkeys.push(op),
                 Decl::Attr(op) => schema.attrs.push(op),
                 Decl::Equation(eq) => schema.constraints.push(eq),

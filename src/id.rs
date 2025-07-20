@@ -17,7 +17,7 @@ impl std::fmt::Debug for TypeId {
 
 impl std::fmt::Debug for OperId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Oper({})", self.0)
+        write!(f, "Oper{}", self.0)
     }
 }
 
