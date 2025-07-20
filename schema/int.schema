@@ -1,0 +1,17 @@
+#schema 
+#sort Int 
+
+#func 0 : Int 
+#func 1 : Int 
+#func - : Int -> Int 
+#func + : Int * Int -> Int 
+#func * : Int * Int -> Int 
+#func <= : Int * Int -> Int 
+
+#rule x y z : Int | 
+        (not!((x <= y) and (y <= z)) or (x <= z)) = true 
+#rule x y : Int | 
+        ((x <= y) or (y <= x)) = true 
+#rule x y z w : Int | 
+        (not!((x <= y) and (z <= w)) or ((x + z) <= (y + w))) = true 
+#rule | 1 <= 0 = not!true 

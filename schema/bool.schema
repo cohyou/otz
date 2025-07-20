@@ -1,0 +1,16 @@
+#sort Bool 
+
+#func true : Bool
+#func false : Bool 
+#func not : Bool -> Bool 
+#func and : Bool * Bool -> Bool 
+#func or : Bool * Bool -> Bool 
+
+#rule a : Bool | (a or false) = a 
+#rule a : Bool | and![a true] = a 
+#rule a b : Bool | [a b].or = [b a].or 
+#rule a b : Bool | and![a b] = and![b a] 
+#rule a : Bool | [a a.not].or = true 
+#rule a b c : Bool | (a or (b and c)) = ((a or b) and (a or c)) 
+#rule a b c : Bool | [a [b c].and].or = [[a b].or [a c].or].and 
+#rule a b c : Bool | or![a and![b c]] = and![or![a b] or![a c]]

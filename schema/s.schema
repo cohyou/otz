@@ -1,0 +1,14 @@
+#sort Emp
+#sort Dept
+
+#func mgr : Emp -> Emp
+#func wrk : Emp -> Dept
+#func sec : Dept -> Emp
+#func last : Emp -> Str
+#func name : Dept -> Str
+#func sal : Emp -> Int
+
+#rule e : Emp | e.mgr.mgr = e.mgr
+#rule e : Emp | e.mgr.wrk = e.wrk
+#rule d : Dept | d.sec.wrk = d
+#rule e : Emp | (e.sal <= e.mgr.sal) = true

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <body style="font-family: 'Courier New', Courier, monospace; font-size: xx-large;">
+    <span style="color: brown;">#schema</span>
+    <br>
+    <span style="color: brown;">#sort</span>&nbsp;Int
+    <br>
+    <br>
+    <span style="color: brown;">#func</span>&nbsp;0 <span style="color: brown;">:</span> Int
+    <br>
+    <span style="color: brown;">#func</span>&nbsp;1 <span style="color: brown;">:</span> Int
+    <br>
+    <span style="color: brown;">#func</span>&nbsp;- <span style="color: brown;">:</span> Int -> Int
+    <br>
+    <span style="color: brown;">#func</span>&nbsp;+ <span style="color: brown;">:</span> Int * Int -> Int
+    <br>
+    <span style="color: brown;">#func</span>&nbsp;* <span style="color: brown;">:</span> Int * Int -> Int
+    <br>
+    <span style="color: brown;">#func</span>&nbsp;&lt;= <span style="color: brown;">:</span> Int * Int -> Int
+    <br>
+    <br>
+    <span style="color: brown;">#rule</span> x y z <span style="color: brown;">:</span> Int <span style="color: brown;">|</span>
+    <br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(not!((x <= y) and (y <= z)) or (x <= z)) <span style="color: brown;">=</span> true
+    <br>
+    <span style="color: brown;">#rule</span> x y <span style="color: brown;">:</span> Int <span style="color: brown;">|</span>
+    <br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;((x <= y) or (y <= x)) <span style="color: brown;">=</span> true
+    <br>
+    <span style="color: brown;">#rule</span> x y z w <span style="color: brown;">:</span> Int <span style="color: brown;">|</span>
+    <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    (not!((x <= y) and (z <= w)) or ((x + z) <= (y + w))) <span style="color: brown;">=</span> true
+    <br>
+    <span style="color: brown;">#rule</span> <span style="color: brown;">|</span> 1 <= 0 <span style="color: brown;">=</span> not!true
+    <br>
+  </body>
+</html>

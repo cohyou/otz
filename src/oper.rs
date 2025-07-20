@@ -1,0 +1,20 @@
+use crate::id::OperId;
+use crate::r#type::Type;
+type Link<T> = std::rc::Rc<T>;
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct Oper {
+    id: OperId,
+    dom: Link<Type>,
+    cod: Link<Type>,
+}
+
+impl Oper {
+    pub fn new(id: OperId, dom: Link<Type>, cod: Link<Type>) -> Self {
+        Oper {
+            id,
+            dom: dom,
+            cod: cod,
+        }
+    }
+}
