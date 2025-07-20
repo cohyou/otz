@@ -3,8 +3,8 @@ use crate::oper::Oper;
 use crate::parser::oper::oper_parser;
 use crate::parser::DIRECTIVE_SIGN;
 use crate::symbol_table::SymbolTable;
-use combine::parser::char;
-use combine::parser::char::spaces;
+use combine::parser::char::{string, spaces};
+
 use combine::stream::Stream;
 use combine::Parser;
 
@@ -16,14 +16,14 @@ pub fn attr_decl_parser<'a, Input>(
 where
     Input: Stream<Token = char> + 'a,
 {
-    char::string(DIRECTIVE_SIGN)
-        .and(char::string("attr"))
+    string(DIRECTIVE_SIGN)
+        .and(string("attr"))
         .and(spaces())
         .with(oper_parser(opers, types))
 }
 
 #[test]
-fn test_type_decl_parser() {
+fn test_attr_decl_parser() {
     use crate::combine::EasyParser;
 
     let type_name_example = "#attr Bool";

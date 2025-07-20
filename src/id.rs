@@ -1,10 +1,28 @@
 use autoincrement::prelude::*;
 
-#[derive(AsyncIncremental, Debug, PartialEq, Eq, Clone)]
+#[derive(AsyncIncremental, PartialEq, Eq, Clone)]
 pub struct TypeId(pub usize);
 
-#[derive(AsyncIncremental, Debug, PartialEq, Eq, Clone)]
+#[derive(AsyncIncremental, PartialEq, Eq, Clone)]
 pub struct OperId(pub usize);
 
-#[derive(AsyncIncremental, Debug, PartialEq, Eq, Clone)]
+#[derive(AsyncIncremental, PartialEq, Eq, Clone)]
 pub struct VarId(pub usize);
+
+impl std::fmt::Debug for TypeId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Type{}", self.0)
+    }
+}
+
+impl std::fmt::Debug for OperId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Oper({})", self.0)
+    }
+}
+
+impl std::fmt::Debug for VarId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Var{}", self.0)
+    }
+}

@@ -3,7 +3,7 @@ use crate::id::{OperId, TypeId, VarId};
 use crate::parser::context::context_parser;
 use crate::parser::term::terminner::oper::terminner_parser;
 use crate::symbol_table::SymbolTable;
-use combine::attempt;
+
 use combine::parser::char::spaces;
 use combine::parser::char::string;
 use combine::stream::Stream;

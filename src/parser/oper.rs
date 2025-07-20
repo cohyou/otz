@@ -7,7 +7,6 @@ use combine::{many1, Parser};
 use crate::id::{OperId, TypeId};
 use crate::oper::Oper;
 use crate::parser::r#type::type_parser;
-use crate::parser::DIRECTIVE_SIGN;
 use crate::symbol_table::SymbolTable;
 
 pub fn oper_parser<'a, Input>(
@@ -28,7 +27,7 @@ where
         .and(type_parser(type_table, table))
         .map(move |(((c, _), dom), cod): (((Vec<_>, _), _), _)| {
             let name: String = c.into_iter().collect();
-            dbg!(&dom, &cod);
+            // dbg!(&dom, &cod);
             let id = table.assign(name);
             let dom = Rc::new(dom);
             let cod = Rc::new(cod);

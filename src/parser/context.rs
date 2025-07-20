@@ -7,8 +7,7 @@ use combine::parser::char::spaces;
 use combine::parser::char::string;
 use combine::stream::Stream;
 use combine::Parser;
-use combine::{many1, not_followed_by};
-use combine::{sep_by, sep_end_by};
+use combine::{sep_by, sep_end_by, many1};
 
 fn parse_variable<'a, Input>(
     vars: &'a SymbolTable<VarId>,

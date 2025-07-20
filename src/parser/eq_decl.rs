@@ -1,6 +1,6 @@
 use crate::equation::Equation;
 use crate::id::{OperId, TypeId, VarId};
-use crate::oper::Oper;
+
 use crate::parser::equation::equation_parser;
 use crate::parser::DIRECTIVE_SIGN;
 use crate::symbol_table::SymbolTable;

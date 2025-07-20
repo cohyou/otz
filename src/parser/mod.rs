@@ -10,4 +10,5 @@ mod type_decl;
 mod schema;
 mod fkey_decl;
 mod attr_decl;
+mod theory_decl;
 pub const DIRECTIVE_SIGN: &'static str = "#";
