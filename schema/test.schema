@@ -2,5 +2,5 @@
 #sort Int
 #sort Fire
 #func not: Bool -> Bool
-#func and : Bool * Bool -> Bool 
+#func and: Bool * Bool -> Bool 
 #rule a: Bool | not![a] = a
