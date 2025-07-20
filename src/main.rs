@@ -10,8 +10,9 @@ mod oper;
 mod parser;
 mod symbol_table;
 mod term;
-mod r#type;
 mod theory;
+mod r#type;
+mod schema;
 
 const MSG: &'static str = r#"Parse error at line: 1, column: 1
 Unexpected `|`

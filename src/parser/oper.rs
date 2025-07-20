@@ -17,10 +17,7 @@ pub fn oper_parser<'a, Input>(
 where
     Input: Stream<Token = char> + 'a,
 {
-    string(DIRECTIVE_SIGN)
-        .and(string("func"))
-        .and(spaces())
-        .with(many1(alpha_num()))
+    many1(alpha_num())
         .skip(spaces())
         .and(string(":"))
         .skip(spaces())
@@ -43,7 +40,7 @@ where
 fn test_oper_parser() {
     use crate::combine::EasyParser;
 
-    let type_name_example = "#func not: Bool -> Bool";
+    let type_name_example = "not: Bool -> Bool";
 
     let table = SymbolTable::<OperId>::init_with(OperId(3));
     let type_table = SymbolTable::<TypeId>::init_with(TypeId(2));

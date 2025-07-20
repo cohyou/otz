@@ -1,14 +1,16 @@
+#theory "test"
+
 #sort Emp
 #sort Dept
 
-#func mgr: Emp -> Emp
-#func wrk: Emp -> Dept
-#func sec: Dept -> Emp
-#func last: Emp -> Str
-#func name: Dept -> Str
-#func sal: Emp -> Int
+#fkey mgr: Emp -> Emp
+#fkey wrk: Emp -> Dept
+#fkey sec: Dept -> Emp
+#attr last: Emp -> Str
+#attr name: Dept -> Str
+#attr sal: Emp -> Int
 
-#rule e: Emp | e.mgr.mgr = e.mgr
-#rule e: Emp | e.mgr.wrk = e.wrk
-#rule d: Dept | d.sec.wrk = d
-#rule e: Emp | (e.sal <= e.mgr.sal) = true
+#rule e: Emp | mgr![mgr![e]] = mgr![e]
+#rule e: Emp | wrk![mgr![e]] = wrk![e]
+#rule d: Dept | wrk![sec![d]] = d
+#rule e: Emp | st![sal![e] sal![mgr![e]]] = true

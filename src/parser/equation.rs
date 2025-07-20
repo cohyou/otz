@@ -1,13 +1,13 @@
-use combine::parser::char::spaces;
-use combine::parser::char::string;
-use combine::stream::Stream;
-use combine::Parser;
-use combine::{attempt};
 use crate::equation::Equation;
 use crate::id::{OperId, TypeId, VarId};
 use crate::parser::context::context_parser;
 use crate::parser::term::terminner::oper::terminner_parser;
 use crate::symbol_table::SymbolTable;
+use combine::attempt;
+use combine::parser::char::spaces;
+use combine::parser::char::string;
+use combine::stream::Stream;
+use combine::Parser;
 
 pub fn equation_parser<'a, Input>(
     types: &'a SymbolTable<TypeId>,
@@ -39,10 +39,10 @@ where
 #[test]
 fn test_terminner_equation_parser() {
     use crate::combine::EasyParser;
-    use crate::term::TermInner;
     use crate::context::Ctxt;
     use crate::r#type::Type;
-    
+    use crate::term::TermInner;
+
     let types = SymbolTable::<TypeId>::new();
     let opers = SymbolTable::<OperId>::new();
     opers.insert("f".to_string(), OperId(0));
@@ -57,12 +57,7 @@ fn test_terminner_equation_parser() {
                 context: Ctxt(vec![Type::Unary(TypeId(1))].into()),
                 left: TermInner::Fun(
                     OperId(0),
-                    vec![
-                        TermInner::Fun(OperId(0), 
-                        vec![
-                            TermInner::Var(VarId(0)).into()
-                        ]).into()
-                    ]
+                    vec![TermInner::Fun(OperId(0), vec![TermInner::Var(VarId(0)).into()]).into()]
                 ),
                 right: TermInner::Var(VarId(0)),
             },

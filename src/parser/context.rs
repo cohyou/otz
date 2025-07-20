@@ -2,13 +2,13 @@ use crate::context::Ctxt;
 use crate::id::{TypeId, VarId};
 use crate::parser::r#type::type_unary_parser;
 use crate::symbol_table::SymbolTable;
-use combine::{many1, not_followed_by};
 use combine::parser::char::alpha_num;
 use combine::parser::char::spaces;
 use combine::parser::char::string;
-use combine::{sep_by, sep_end_by};
 use combine::stream::Stream;
 use combine::Parser;
+use combine::{many1, not_followed_by};
+use combine::{sep_by, sep_end_by};
 
 fn parse_variable<'a, Input>(
     vars: &'a SymbolTable<VarId>,
@@ -27,7 +27,7 @@ where
             v.into_iter().for_each(|vname| {
                 let vname: String = vname.into_iter().collect();
                 let vname = vname.trim().to_string();
-                vars.assign(vname);                
+                vars.assign(vname);
                 ctxt.0.push(t.clone());
             });
             ctxt
@@ -47,7 +47,7 @@ fn test_parse_variable() {
     let r = parse_variable(&vars, &types).easy_parse(ctxt_example);
     // dbg!(&ctxts);
     assert!(r.is_ok());
-    let vars = r.unwrap().0.0;
+    let vars = r.unwrap().0 .0;
     assert_eq!(vars.len(), 1);
     assert_eq!(vars[0], Type::Unary(TypeId(3)));
 }
@@ -65,7 +65,7 @@ fn test_parse_variable2() {
     let r = parse_variable(&vars, &types).easy_parse(ctxt_example);
     // dbg!(&ctxts);
     assert!(r.is_ok());
-    let vars = r.unwrap().0.0;
+    let vars = r.unwrap().0 .0;
     assert_eq!(vars.len(), 3);
     assert_eq!(vars[0], Type::Unary(TypeId(3)));
     assert_eq!(vars[1], Type::Unary(TypeId(3)));
@@ -79,8 +79,7 @@ pub fn context_parser<'a, Input>(
 where
     Input: Stream<Token = char> + 'a,
 {
-    sep_end_by(parse_variable(vars, types), spaces())
-    .map(move |v: Vec<_>| {
+    sep_end_by(parse_variable(vars, types), spaces()).map(move |v: Vec<_>| {
         let mut rr = vec![];
         v.into_iter().for_each(|c| {
             rr.extend(c.0.clone());
@@ -104,7 +103,7 @@ fn test_parse_context() {
     dbg!(&vars);
     dbg!(&types);
     dbg!(&r);
-     let vars = r.unwrap().0.0;
+    let vars = r.unwrap().0 .0;
     assert_eq!(vars.len(), 3);
     assert_eq!(vars[0], Type::Unary(TypeId(3)));
     assert_eq!(vars[1], Type::Unary(TypeId(2)));

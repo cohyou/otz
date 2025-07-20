@@ -1,11 +1,13 @@
 pub mod context;
+mod eq_decl;
 pub mod equation;
 pub mod oper;
+mod oper_decl;
 pub mod term;
+mod theory;
 pub mod r#type;
 mod type_decl;
-mod oper_decl;
-mod eq_decl;
-mod theory;
-
+mod schema;
+mod fkey_decl;
+mod attr_decl;
 pub const DIRECTIVE_SIGN: &'static str = "#";

@@ -1,6 +1,9 @@
 #sort Bool
 #sort Int
-#sort Fire
+#sort Str
+
 #func not: Bool -> Bool
-#func and: Bool * Bool -> Bool 
+#func and: Bool * Bool -> Bool
+#func st: Int * Int -> Bool
+
 #rule a: Bool | not![a] = a
