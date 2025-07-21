@@ -1,7 +1,7 @@
+use crate::equation::Equation;
 use crate::oper::Oper;
 use crate::r#type::Type;
 use crate::theory::Theory;
-use crate::equation::Equation;
 
 #[derive(Default, Clone, Debug)]
 pub struct Schema {

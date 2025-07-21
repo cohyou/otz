@@ -14,5 +14,4 @@ impl std::fmt::Debug for Type {
             Type::Binary(op_id, dom, cod) => write!(f, "Type({:?} {:?}.{:?})", op_id, dom, cod),
         }
     }
-    
 }

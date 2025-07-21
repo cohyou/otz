@@ -3,7 +3,7 @@ use crate::oper::Oper;
 use crate::parser::oper::oper_parser;
 use crate::parser::DIRECTIVE_SIGN;
 use crate::symbol_table::SymbolTable;
-use combine::parser::char::{string, spaces};
+use combine::parser::char::{spaces, string};
 
 use combine::stream::Stream;
 use combine::Parser;

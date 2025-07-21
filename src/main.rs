@@ -8,11 +8,12 @@ mod equation;
 mod id;
 mod oper;
 mod parser;
+mod schema;
 mod symbol_table;
 mod term;
 mod theory;
 mod r#type;
-mod schema;
+mod context_table;
 
 const MSG: &'static str = r#"Parse error at line: 1, column: 1
 Unexpected `|`

@@ -1,31 +1,30 @@
-use combine::Parser;
+use combine::parser::char::spaces;
 use combine::stream::Stream;
+use combine::Parser;
 use combine::{attempt, sep_end_by};
-use combine::parser::char::{spaces};
 
 use crate::schema::Schema;
 
+use crate::id::{OperId, TypeId};
 use crate::symbol_table::SymbolTable;
-use crate::id::{OperId, TypeId, VarId};
+use crate::context_table::CtxtTable;
 
-use crate::theory::Theory;
-use crate::r#type::Type;
-use crate::oper::Oper;
 use crate::equation::Equation;
+use crate::oper::Oper;
+use crate::r#type::Type;
+use crate::theory::Theory;
 
-use crate::parser::theory_decl::theory_decl_parser;
+use crate::parser::attr_decl::attr_decl_parser;
 use crate::parser::eq_decl::equation_decl_parser;
 use crate::parser::fkey_decl::fkey_decl_parser;
-use crate::parser::attr_decl::attr_decl_parser;
+use crate::parser::theory_decl::theory_decl_parser;
 use crate::parser::type_decl::type_decl_parser;
-
 
 fn schema_parser<'a, Input>(
     types: &'a SymbolTable<TypeId>,
     opers: &'a SymbolTable<OperId>,
-    vars: &'a SymbolTable<VarId>,
-)
- -> impl Parser<Input, Output = Schema> + 'a
+    ctxts: &'a CtxtTable,
+) -> impl Parser<Input, Output = Schema> + 'a
 where
     Input: Stream<Token = char> + 'a,
 {
@@ -38,11 +37,11 @@ where
         Equation(Equation),
     }
 
-    let theory_decl_parser = theory_decl_parser::<Input>(types, opers, vars);
+    let theory_decl_parser = theory_decl_parser::<Input>(types, opers, ctxts);
     let entity_parser = type_decl_parser::<Input>(types);
     let fkey_parser = fkey_decl_parser::<Input>(opers, types);
     let attr_parser = attr_decl_parser::<Input>(opers, types);
-    let equation_parser = equation_decl_parser::<Input>(types, vars, opers);
+    let equation_parser = equation_decl_parser::<Input>(types, ctxts, opers);
 
     let decl_parsers = attempt(theory_decl_parser.map(Decl::Theory))
         .or(attempt(entity_parser.map(Decl::Entity)))
@@ -76,17 +75,17 @@ fn test_schema_parser() {
 
     let types = SymbolTable::<TypeId>::new();
     let opers = SymbolTable::<OperId>::new();
-    let vars = SymbolTable::<VarId>::new();
-    let result = schema_parser::<combine::easy::Stream<&str>>(&types, &opers, &vars).easy_parse(schema_example.as_ref());
+    let ctxts = CtxtTable::new();
+    let result = schema_parser::<combine::easy::Stream<&str>>(&types, &opers, &ctxts)
+        .easy_parse(schema_example.as_ref());
+
+    dbg!(&types);
+    dbg!(&opers);
+    dbg!(&ctxts);
     dbg!(&result);
     match result {
         Ok((_, _)) => {
-            // assert_eq!(schema.theory.name, "ExampleSchema");
-            // assert!(schema.entities.is_empty());
-            // assert!(schema.fkeys.is_empty());
-            // assert!(schema.attrs.is_empty());
-            // assert!(schema.constraints.is_empty());
         }
         Err(err) => panic!("Failed to parse schema: {}", err),
-    }    
+    }
 }

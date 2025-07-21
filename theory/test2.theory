@@ -6,7 +6,5 @@
 #func and: Bool * Bool -> Bool
 #func st: Int * Int -> Bool
 #func false: 1 -> Bool
-#func true: 1 -> Bool
 
-#rule a: Bool | not![a] = a
-#rule a: Bool | and![false![] a] = not![a]
+#rule a: Bool c: Int | not![a] = a

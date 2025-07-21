@@ -1,12 +1,19 @@
-use autoincrement::AsyncIncrement;
-use autoincrement::AsyncIncremental;
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-#[derive(Debug)]
+use autoincrement::AsyncIncrement;
+use autoincrement::AsyncIncremental;
+
+// #[derive(Debug)]
 pub struct SymbolTable<Id: AsyncIncremental> {
     table: RefCell<HashMap<String, Id>>,
     generator: AsyncIncrement<Id>,
+}
+
+impl<Id: AsyncIncremental + std::fmt::Debug> std::fmt::Debug for SymbolTable<Id> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.table.borrow())
+    }
 }
 
 impl<Id: AsyncIncremental + Clone> SymbolTable<Id> {

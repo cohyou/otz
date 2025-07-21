@@ -1,27 +1,28 @@
+use combine::Parser;
+use combine::stream::Stream;
+use combine::parser::char::{spaces, string};
+
 use crate::equation::Equation;
-use crate::id::{OperId, TypeId, VarId};
+use crate::id::{OperId, TypeId};
 
 use crate::parser::equation::equation_parser;
 use crate::parser::DIRECTIVE_SIGN;
 use crate::symbol_table::SymbolTable;
-use combine::parser::char;
-use combine::parser::char::spaces;
-use combine::stream::Stream;
-use combine::Parser;
+use crate::context_table::CtxtTable;
 
-/// 型名
+
 pub fn equation_decl_parser<'a, Input>(
     types: &'a SymbolTable<TypeId>,
-    vars: &'a SymbolTable<VarId>,
+    ctxts: &'a CtxtTable,
     opers: &'a SymbolTable<OperId>,
 ) -> impl Parser<Input, Output = Equation> + 'a
 where
     Input: Stream<Token = char> + 'a,
 {
-    char::string(DIRECTIVE_SIGN)
-        .and(char::string("rule"))
+    string(DIRECTIVE_SIGN)
+        .and(string("rule"))
         .and(spaces())
-        .with(equation_parser(types, vars, opers))
+        .with(equation_parser(types, ctxts, opers))
 }
 
 #[ignore]
@@ -33,8 +34,8 @@ fn test_type_decl_parser() {
 
     let opers = SymbolTable::<OperId>::init_with(OperId(2));
     let types = SymbolTable::<TypeId>::init_with(TypeId(2));
-    let vars = SymbolTable::<VarId>::init_with(VarId(1));
-    let _r = equation_decl_parser(&types, &vars, &opers).easy_parse(type_name_example);
+    let ctxts = CtxtTable::new();
+    let _r = equation_decl_parser(&types, &ctxts, &opers).easy_parse(type_name_example);
     dbg!(&opers);
     assert_eq!(types.get("Bool"), Some(TypeId(2)));
 }

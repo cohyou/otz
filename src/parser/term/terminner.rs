@@ -2,34 +2,42 @@ mod r#const;
 pub mod oper;
 mod var;
 
-use crate::id::{OperId, VarId};
-use crate::parser::term::terminner::oper::terminner_oper_parser;
-use crate::parser::term::terminner::var::terminner_var_parser;
-use crate::symbol_table::SymbolTable;
-use crate::term::TermInner;
 use combine::attempt;
 use combine::stream::Stream;
 use combine::Parser;
 
+use crate::id::OperId;
+use crate::term::TermInner;
+use crate::symbol_table::SymbolTable;
+use crate::context_table::CtxtTable;
+use crate::parser::term::terminner::oper::terminner_oper_parser;
+use crate::parser::term::terminner::var::terminner_var_parser;
+
+
+
 pub fn terminner_parser_<'a, Input>(
-    vars: &'a SymbolTable<VarId>,
+    ctxts: &'a CtxtTable,
     opers: &'a SymbolTable<OperId>,
 ) -> impl Parser<Input, Output = TermInner> + 'a
 where
     Input: Stream<Token = char> + 'a,
 {
-    attempt(terminner_oper_parser(vars, opers)).or(terminner_var_parser(vars))
+    attempt(terminner_oper_parser(ctxts, opers)).or(terminner_var_parser(ctxts))
 }
 
 #[test]
 fn test_terminner_parser1() {
     use crate::combine::EasyParser;
+    use crate::id::VarId;
+    
     let opers = SymbolTable::<OperId>::new();
     opers.insert("f".to_string(), OperId(0));
-    let vars = SymbolTable::<VarId>::new();
-    vars.insert("a".to_string(), VarId(0));
+    let ctxts = CtxtTable::new();
+    ctxts.assign_to_current("a".to_string());
+    // let vars = std::rc::Rc::new(SymbolTable::<VarId>::new());
+    // vars.insert("a".to_string(), VarId(0));
 
-    let r = terminner_oper_parser(&vars, &opers).easy_parse("f![a]");
+    let r = terminner_oper_parser(&ctxts, &opers).easy_parse("f![a]");
     dbg!(&opers);
     assert_eq!(
         r,
@@ -43,12 +51,17 @@ fn test_terminner_parser1() {
 #[test]
 fn test_terminner_parser2() {
     use crate::combine::EasyParser;
+    use crate::id::OperId;
+    use crate::id::VarId;
+
     let opers = SymbolTable::<OperId>::new();
     opers.insert("f".to_string(), OperId(0));
-    let vars = SymbolTable::<VarId>::new();
-    vars.insert("a".to_string(), VarId(0));
+    let ctxts = CtxtTable::new();
+    ctxts.assign_to_current("a".to_string());
+    // let vars = std::rc::Rc::new(SymbolTable::<VarId>::new());
+    // vars.insert("a".to_string(), VarId(0));
 
-    let r = terminner_oper_parser(&vars, &opers).easy_parse("f![f![a]]");
+    let r = terminner_oper_parser(&ctxts, &opers).easy_parse("f![f![a]]");
     dbg!(&opers);
     assert_eq!(
         r,
