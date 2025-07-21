@@ -20,7 +20,7 @@ use crate::parser::fkey_decl::fkey_decl_parser;
 use crate::parser::theory_decl::theory_decl_parser;
 use crate::parser::type_decl::type_decl_parser;
 
-fn schema_parser<'a, Input>(
+pub fn schema_parser<'a, Input>(
     types: &'a SymbolTable<TypeId>,
     opers: &'a SymbolTable<OperId>,
     ctxts: &'a CtxtTable,
