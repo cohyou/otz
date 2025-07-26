@@ -9,11 +9,12 @@ use crate::r#type::Type;
 pub struct Ctxt(pub HashMap<CtxtId, HashMap<VarId, Type>>);
 impl Ctxt {
     pub fn extend_to_default(&mut self, vars: HashMap<VarId, Type>) {
-        self.0.entry(CtxtId(0))
-        .and_modify(|target| {
-            target.extend(vars);
-        })
-        .or_insert(HashMap::default());
+        self.0
+            .entry(CtxtId(0))
+            .and_modify(|target| {
+                target.extend(vars);
+            })
+            .or_insert(HashMap::default());
     }
 }
 impl std::fmt::Debug for Ctxt {

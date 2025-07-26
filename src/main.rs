@@ -15,8 +15,8 @@ pub mod schema;
 pub mod symbol_table;
 
 fn main() {
-    use crate::parser::parse_schema;
     use crate::parser::parse_instance;
+    use crate::parser::parse_schema;
 
     let path = "schema/s.schema";
     let schema = parse_schema(path);

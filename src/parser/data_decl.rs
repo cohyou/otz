@@ -45,8 +45,8 @@ where
 
 #[test]
 fn test_data_decl_parser() {
-    use combine::EasyParser;
     use crate::id::TypeId;
+    use combine::EasyParser;
 
     let input = "#data wrk![e1] = d3";
 

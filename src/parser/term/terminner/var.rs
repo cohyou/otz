@@ -12,7 +12,6 @@ pub fn terminner_var_parser<'a, Input>(
 where
     Input: Stream<Token = char> + 'a,
 {
-    // This parser will parse a variable name and return a TermInner::Var variant
     many1(alpha_num()).map(move |c: Vec<_>| {
         let name: String = c.into_iter().collect();
         // dbg!(ctxts);

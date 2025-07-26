@@ -2,7 +2,18 @@ use std::{cell::RefCell, collections::HashMap};
 
 use combine::{attempt, parser::char::spaces, sep_end_by, Parser, Stream};
 
-use crate::{context_table::CtxtTable, equation::Equation, id::{OperId, TypeId, VarId}, instance::Instance, parser::{data_decl::data_decl_parser, elem_decl::elem_decl_parser, schema_decl::schema_decl_parser}, schema::Schema, symbol_table::SymbolTable, r#type::Type};
+use crate::{
+    context_table::CtxtTable,
+    equation::Equation,
+    id::{OperId, TypeId, VarId},
+    instance::Instance,
+    parser::{
+        data_decl::data_decl_parser, elem_decl::elem_decl_parser, schema_decl::schema_decl_parser,
+    },
+    r#type::Type,
+    schema::Schema,
+    symbol_table::SymbolTable,
+};
 
 pub fn instance_parser<'a, Input>(
     elems: &'a RefCell<HashMap<VarId, Type>>,
@@ -11,7 +22,7 @@ pub fn instance_parser<'a, Input>(
     ctxts: &'a CtxtTable,
 ) -> impl Parser<Input, Output = Instance> + 'a
 where
-    Input: Stream<Token=char> + 'a,
+    Input: Stream<Token = char> + 'a,
 {
     #[derive(Clone)]
     enum Decl {
@@ -24,19 +35,20 @@ where
     let data_parser = data_decl_parser(elems, ctxts, opers);
 
     // schema: Schema,
-    let decl_parsers = 
-    attempt(schema_decl_parser(types, opers, ctxts).map(Decl::Schema))
-    .or(attempt(elem_parser.map(Decl::Elem)))
-    .or(data_parser.map(Decl::Data));
+    let decl_parsers = attempt(schema_decl_parser(types, opers, ctxts).map(Decl::Schema))
+        .or(attempt(elem_parser.map(Decl::Elem)))
+        .or(data_parser.map(Decl::Data));
 
-    sep_end_by(decl_parsers, spaces())
-    .map(|decls: Vec<Decl>| {
+    sep_end_by(decl_parsers, spaces()).map(|decls: Vec<Decl>| {
         let mut instance = Instance::default();
-        
+
         for decl in decls {
             match decl {
                 Decl::Schema(sch) => instance.schema = sch,
-                Decl::Elem(elem) => {dbg!(&elem);instance.elems.extend_to_default(elem)}
+                Decl::Elem(elem) => {
+                    dbg!(&elem);
+                    instance.elems.extend_to_default(elem)
+                }
                 Decl::Data(eq) => instance.data.push(eq),
             }
         }
@@ -57,7 +69,8 @@ fn test_parse_instance() {
     let opers = SymbolTable::<OperId>::new();
     let ctxts = CtxtTable::new();
 
-    let result = instance_parser::<combine::easy::Stream<&str>>(&elems, &types, &opers, &ctxts).easy_parse(input.as_ref());
+    let result = instance_parser::<combine::easy::Stream<&str>>(&elems, &types, &opers, &ctxts)
+        .easy_parse(input.as_ref());
     dbg!(&result);
     assert!(result.is_ok())
 }

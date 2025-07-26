@@ -9,7 +9,8 @@ use crate::{
     context_table::CtxtTable,
     id::{TypeId, VarId},
     parser::{context::context_parser, DIRECTIVE_SIGN},
-    symbol_table::SymbolTable, r#type::Type,
+    r#type::Type,
+    symbol_table::SymbolTable,
 };
 
 pub fn elem_decl_parser<'a, Input>(
@@ -26,11 +27,11 @@ where
         .with(context_parser(ctxts, types))
         .map(move |ctxt| {
             let elems = {
-            let mut elems_ref = elems.borrow_mut();
-            ctxt.0.values().for_each(|v| {                
-                elems_ref.extend(v.clone());
-            });
-            elems
+                let mut elems_ref = elems.borrow_mut();
+                ctxt.0.values().for_each(|v| {
+                    elems_ref.extend(v.clone());
+                });
+                elems
             };
 
             elems.borrow().clone()
@@ -40,7 +41,7 @@ where
 #[test]
 fn test_parse_elem_decl() {
     use combine::EasyParser;
-    
+
     let elems = RefCell::new(HashMap::new());
     let ctxts = CtxtTable::new();
     let types = SymbolTable::<TypeId>::new();
