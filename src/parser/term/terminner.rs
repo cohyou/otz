@@ -6,14 +6,12 @@ use combine::attempt;
 use combine::stream::Stream;
 use combine::Parser;
 
-use crate::id::OperId;
-use crate::term::TermInner;
-use crate::symbol_table::SymbolTable;
 use crate::context_table::CtxtTable;
+use crate::id::OperId;
 use crate::parser::term::terminner::oper::terminner_oper_parser;
 use crate::parser::term::terminner::var::terminner_var_parser;
-
-
+use crate::symbol_table::SymbolTable;
+use crate::term::TermInner;
 
 pub fn terminner_parser_<'a, Input>(
     ctxts: &'a CtxtTable,
@@ -29,7 +27,7 @@ where
 fn test_terminner_parser1() {
     use crate::combine::EasyParser;
     use crate::id::VarId;
-    
+
     let opers = SymbolTable::<OperId>::new();
     opers.insert("f".to_string(), OperId(0));
     let ctxts = CtxtTable::new();

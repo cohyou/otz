@@ -6,7 +6,7 @@ pub struct TypeId(pub usize);
 #[derive(AsyncIncremental, PartialEq, Eq, Clone)]
 pub struct OperId(pub usize);
 
-#[derive(Hash, AsyncIncremental, PartialEq, Eq, Clone)]
+#[derive(Default, Hash, AsyncIncremental, PartialEq, Eq, Clone)]
 pub struct CtxtId(pub usize);
 #[derive(Hash, AsyncIncremental, PartialEq, Eq, Clone)]
 pub struct VarId(pub usize);

@@ -24,7 +24,7 @@ where
 
 #[test]
 fn test_attr_decl_parser() {
-    use crate::combine::EasyParser;
+    use combine::EasyParser;
 
     let type_name_example = "#attr Bool";
 

@@ -2,12 +2,12 @@ use combine::parser::char::{spaces, string};
 use combine::stream::Stream;
 use combine::Parser;
 
+use crate::context_table::CtxtTable;
 use crate::equation::Equation;
 use crate::id::{OperId, TypeId};
 use crate::parser::context::context_parser;
 use crate::parser::term::terminner::oper::terminner_parser;
 use crate::symbol_table::SymbolTable;
-use crate::context_table::CtxtTable;
 
 pub fn equation_parser<'a, Input>(
     types: &'a SymbolTable<TypeId>,
@@ -21,11 +21,10 @@ where
     let left_parser = terminner_parser(ctxts, opers);
     let right_parser = terminner_parser(ctxts, opers);
 
-    
-        context_parser
-            .skip(spaces())
-            .skip(string("|"))
-            .skip(spaces())
+    context_parser
+        .skip(spaces())
+        .skip(string("|"))
+        .skip(spaces())
         .and(left_parser.skip(spaces()).skip(string("=").skip(spaces())))
         .and(right_parser)
         .map(|((context, left), right)| {
@@ -48,11 +47,11 @@ where
 fn test_terminner_equation_parser() {
     use crate::combine::EasyParser;
     use crate::context::Ctxt;
-    use crate::term::TermInner;
-    use crate::id::VarId;
     use crate::id::CtxtId;
+    use crate::id::VarId;
+    use crate::term::TermInner;
     use std::collections::HashMap;
-    
+
     let example = "a: Bool | f![f![a]] = a";
 
     let types = SymbolTable::<TypeId>::new();

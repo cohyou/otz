@@ -4,12 +4,11 @@ use combine::stream::Stream;
 use combine::Parser;
 use combine::{many1, sep_by};
 
-use crate::id::{OperId};
+use crate::context_table::CtxtTable;
+use crate::id::OperId;
 use crate::parser::term::terminner::terminner_parser_;
 use crate::symbol_table::SymbolTable;
-use crate::context_table::CtxtTable;
 use crate::term::TermInner;
-
 
 pub fn terminner_oper_parser<'a, Input>(
     // vars: std::rc::Rc<SymbolTable<VarId>>,
@@ -49,7 +48,7 @@ parser! {
 fn test_terminner_oper_parser1() {
     use crate::combine::EasyParser;
     use crate::id::VarId;
-    
+
     let opers = SymbolTable::<OperId>::new();
     opers.insert("f".to_string(), OperId(0));
     let ctxts = CtxtTable::new();

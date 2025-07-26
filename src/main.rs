@@ -8,15 +8,21 @@ mod term;
 mod theory;
 mod r#type;
 
+pub mod context_table;
+pub mod instance;
+pub mod parser;
 pub mod schema;
 pub mod symbol_table;
-pub mod context_table;
-pub mod parser;
 
 fn main() {
     use crate::parser::parse_schema;
+    use crate::parser::parse_instance;
 
     let path = "schema/s.schema";
     let schema = parse_schema(path);
     dbg!(schema);
+
+    let path = "instance/i.instance";
+    let instance = parse_instance(path);
+    dbg!(instance);
 }

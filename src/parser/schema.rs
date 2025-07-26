@@ -5,9 +5,9 @@ use combine::{attempt, sep_end_by};
 
 use crate::schema::Schema;
 
+use crate::context_table::CtxtTable;
 use crate::id::{OperId, TypeId};
 use crate::symbol_table::SymbolTable;
-use crate::context_table::CtxtTable;
 
 use crate::equation::Equation;
 use crate::oper::Oper;
@@ -84,8 +84,7 @@ fn test_schema_parser() {
     dbg!(&ctxts);
     dbg!(&result);
     match result {
-        Ok((_, _)) => {
-        }
+        Ok((_, _)) => {}
         Err(err) => panic!("Failed to parse schema: {}", err),
     }
 }

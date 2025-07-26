@@ -1,0 +1,6 @@
+#schema s
+
+#elem e1 e2 e3 e4 e5 e6 e7: Emp
+#elem d1 d2 d3: Dept
+
+#data wrk![e1] = d3

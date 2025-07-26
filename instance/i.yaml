@@ -1,0 +1,46 @@
+Emp:
+  - id: e1 
+    last: Gauss
+    wrk: d3
+    mgr: e1
+    sal: 250
+  - id: e2
+    last: Noether
+    wrk: d2
+    mgr: e3
+    sal: 300
+  - id: e3
+    last: EinStein
+    wrk: d1
+    mgr: e3
+    sal: 200
+  - id: e4
+    last: Turing
+    wrk: d2
+    mgr: e4
+    sal: 400
+  - id: e5
+    last: Newton
+    wrk: d3
+    mgr: e1
+    sal: 100
+  - id: e6
+    last: Euclid
+    wrk: d2
+    mgr: e7
+    sal: 150
+  - id: e7
+    last: Hypatia
+    wrk: d2
+    mgr: e7
+    sal: x
+Dept:
+  - id: d1
+    name: HR
+    sec: e3
+  - id: d2
+    name: Admin
+    sec: e6
+  - id: d3
+    name: IT
+    sec: e5

@@ -5,11 +5,11 @@ use combine::stream::Stream;
 use combine::Parser;
 use combine::{many1, sep_by};
 
+use crate::context_table::CtxtTable;
 use crate::id::{TypeId, VarId};
 use crate::parser::r#type::type_unary_parser;
 use crate::r#type::Type;
 use crate::symbol_table::SymbolTable;
-use crate::context_table::CtxtTable;
 
 pub fn parse_variable<'a, Input>(
     ctxts: &'a CtxtTable,

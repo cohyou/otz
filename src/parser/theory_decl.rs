@@ -6,11 +6,11 @@ use combine::{EasyParser, Parser};
 use combine::parser::char::{alpha_num, spaces, string};
 use combine::{between, many1};
 
-use crate::id::{OperId, TypeId};
-use crate::theory::Theory;
-use crate::symbol_table::SymbolTable;
 use crate::context_table::CtxtTable;
+use crate::id::{OperId, TypeId};
 use crate::parser::theory::theory_parser;
+use crate::symbol_table::SymbolTable;
+use crate::theory::Theory;
 
 use crate::parser::DIRECTIVE_SIGN;
 

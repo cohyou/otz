@@ -4,9 +4,9 @@ use std::collections::HashMap;
 use autoincrement::AsyncIncrement;
 use autoincrement::AsyncIncremental;
 
-// #[derive(Debug)]
+// #[derive(Clone)]
 pub struct SymbolTable<Id: AsyncIncremental> {
-    table: RefCell<HashMap<String, Id>>,
+    pub table: RefCell<HashMap<String, Id>>,
     generator: AsyncIncrement<Id>,
 }
 

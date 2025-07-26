@@ -9,11 +9,11 @@ use crate::equation::Equation;
 use crate::oper::Oper;
 use crate::r#type::Type;
 
+use crate::context_table::CtxtTable;
 use crate::parser::eq_decl::equation_decl_parser;
 use crate::parser::oper_decl::oper_decl_parser;
 use crate::parser::type_decl::type_decl_parser;
 use crate::symbol_table::SymbolTable;
-use crate::context_table::CtxtTable;
 use crate::theory::Theory;
 
 pub fn theory_parser<'a, Input>(
@@ -90,7 +90,8 @@ fn test_theory_parser2() {
     // dbg!(&ctxts);
     let f = "theory/test.theory";
     let theory_example = std::fs::read_to_string(f).expect("Failed to read");
-    let r = theory_parser::<Stream<&str>>(&types, &opers, &ctxts).easy_parse(theory_example.as_ref());
+    let r =
+        theory_parser::<Stream<&str>>(&types, &opers, &ctxts).easy_parse(theory_example.as_ref());
     // dbg!(&types);
     // dbg!(&opers);
     dbg!(&ctxts);

@@ -6,10 +6,10 @@ use combine::stream::Stream;
 use combine::Parser;
 
 use crate::context::Ctxt;
+use crate::context_table::CtxtTable;
 use crate::id::TypeId;
 use crate::parser::variable::parse_variable;
 use crate::symbol_table::SymbolTable;
-use crate::context_table::CtxtTable;
 
 pub fn context_parser<'a, Input>(
     ctxts: &'a CtxtTable,
@@ -25,7 +25,7 @@ where
         vss.into_iter().for_each(|vs| {
             res_vss.extend(vs);
         });
-        let ctxt_id = ctxts.generator.current();                                                 
+        let ctxt_id = ctxts.generator.current();
         let mut new_ctxt = HashMap::new();
         new_ctxt.insert(ctxt_id.clone(), res_vss.clone());
         Ctxt(new_ctxt)

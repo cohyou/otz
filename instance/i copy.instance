@@ -1,0 +1,44 @@
+#schema s
+
+#elem e1 e2 e3 e4 e5 e6 e7: Emp
+#elem d1 d2 d3: Dept
+
+#data e1.last = "Gauss"
+#data e2.last = "Noether"
+#data e3.last = "Einstein"
+#data e4.last = "Turing"
+#data e5.last = "Newton"
+#data e6.last = "Euclid"
+#data e7.last = "Hypatia"
+
+#data e1.wrk = d3
+#data e2.wrk = d2
+#data e3.wrk = d1
+#data e4.wrk = d2
+#data e5.wrk = d3
+#data e6.wrk = d2
+#data e7.wrk = d2
+
+#data e1.mgr = e1
+#data e2.mgr = e4
+#data e3.mgr = e3
+#data e4.mgr = e4
+#data e5.mgr = e1
+#data e6.mgr = e7
+#data e7.mgr = e7
+
+#data e1.sal = 250
+#data e2.sal = 200
+#data e3.sal = 300
+#data e4.sal = 400
+#data e5.sal = 100
+#data e6.sal = 150
+#data e7.sal = x
+
+#data d1.name = HR
+#data d2.name = Admin
+#data d3.name = IT
+
+#data d1.sec = e3
+#data d2.sec = e6
+#data d3.sec = e5

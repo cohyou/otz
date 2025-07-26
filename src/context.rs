@@ -7,7 +7,15 @@ use crate::r#type::Type;
 // #[derive(Debug)]
 #[derive(PartialEq, Clone, Default)]
 pub struct Ctxt(pub HashMap<CtxtId, HashMap<VarId, Type>>);
-
+impl Ctxt {
+    pub fn extend_to_default(&mut self, vars: HashMap<VarId, Type>) {
+        self.0.entry(CtxtId(0))
+        .and_modify(|target| {
+            target.extend(vars);
+        })
+        .or_insert(HashMap::default());
+    }
+}
 impl std::fmt::Debug for Ctxt {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self.0)
