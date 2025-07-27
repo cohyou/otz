@@ -7,3 +7,37 @@
 #data wrk!e1 = d3
 #data mgr!e1 = e1
 #data sal!e1 = 250
+
+#data last!e2 = "Noether"
+#data wrk!e2 = d2
+#data mgr!e2 = e4
+#data sal!e2 = 200
+
+#data last!e3 = "Einstein"
+#data wrk!e3 = d1
+#data mgr!e3 = e3
+#data sal!e3 = 300
+
+#data last!e4 = "Turing"
+#data wrk!e4 = d2
+#data mgr!e4 = e4
+#data sal!e4 = 400
+
+#data last!e5 = "Newton"
+#data wrk!e5 = d3
+#data mgr!e5 = e1
+#data sal!e5 = 100
+
+#data last!e6 = "Euclid"
+#data wrk!e6 = d2
+#data mgr!e6 = e7
+#data sal!e6 = 150
+
+#data name!d1 = "HR"
+#data sec!d1 = e3
+
+#data name!d2 = "Admin"
+#data sec!d2 = e6
+
+#data name!d3 = "IT"
+#data sec!d3 = e5

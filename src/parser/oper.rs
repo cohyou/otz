@@ -53,12 +53,13 @@ fn test_oper_parser() {
 fn test_oper_parser_binary_type() {
     use crate::combine::EasyParser;
 
-    let type_name_example = "#func and: Bool * Bool -> Bool";
+    let type_name_example = "and: Bool * Bool -> Bool";
 
     let table = SymbolTable::<OperId>::init_with(OperId(2));
     let type_table = SymbolTable::<TypeId>::init_with(TypeId(2));
     type_table.insert("Bool".to_string(), TypeId(2));
-    let _r = oper_parser(&table, &type_table).easy_parse(type_name_example);
+    let result = oper_parser(&table, &type_table).easy_parse(type_name_example);
+    dbg!(&result);
     dbg!(&table);
     assert_eq!(table.get("and"), Some(OperId(3)));
 }
