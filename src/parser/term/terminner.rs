@@ -4,8 +4,9 @@ use crate::{
     context_table::CtxtTable,
     id::OperId,
     parser::term::terminner::{
-        oper::terminner_oper_parser, oper_unary::terminner_oper_unary_parser,
-        r#const::terminner_const_parser, var::terminner_var_parser,
+        integer::integer_parser, oper::terminner_oper_parser,
+        oper_unary::terminner_oper_unary_parser, r#const::terminner_const_parser,
+        string::string_parser, var::terminner_var_parser,
     },
     symbol_table::SymbolTable,
     term::TermInner,
@@ -15,6 +16,8 @@ mod r#const;
 pub mod oper;
 mod oper_unary;
 // mod oper_post;
+mod integer;
+mod string;
 mod var;
 
 pub fn terminner_parser_<'a, Input>(
@@ -24,11 +27,12 @@ pub fn terminner_parser_<'a, Input>(
 where
     Input: Stream<Token = char> + 'a,
 {
-    attempt(terminner_oper_parser(ctxts, opers))
+    attempt(string_parser())
+    .or(attempt(integer_parser()))
+    .or(attempt(terminner_oper_parser(ctxts, opers)))
         .or(attempt(terminner_oper_unary_parser(ctxts, opers)))
         .or(attempt(terminner_const_parser(opers)))
         .or(attempt(terminner_var_parser(ctxts)))
-    // let parser = terminner_oper_post_parser(ctxts, opers);
 }
 
 // fn terminner_parser_inner<'a, Input>(

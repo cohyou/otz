@@ -5,6 +5,8 @@ type Link<T> = std::rc::Rc<T>;
 pub enum TermInner {
     Var(VarId),
     Fun(OperId, Vec<Link<TermInner>>),
+    Str(String),
+    Int(usize),
 }
 
 impl std::fmt::Debug for TermInner {
@@ -12,6 +14,8 @@ impl std::fmt::Debug for TermInner {
         match self {
             TermInner::Var(id) => write!(f, "Var{:?}", id.0),
             TermInner::Fun(op_id, args) => write!(f, "Fun{:?}{:?}", op_id.0, args),
+            TermInner::Str(s) => write!(f, "Str{:?}", s),
+            TermInner::Int(i) => write!(f, "Int{:?}", i),
         }
     }
 }
