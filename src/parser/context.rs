@@ -5,7 +5,7 @@ use combine::sep_end_by;
 use combine::stream::Stream;
 use combine::Parser;
 
-use crate::context::Ctxt;
+use crate::context::Context;
 use crate::context_table::CtxtTable;
 use crate::id::TypeId;
 use crate::parser::variable::parse_variable;
@@ -14,21 +14,18 @@ use crate::symbol_table::SymbolTable;
 pub fn context_parser<'a, Input>(
     ctxts: &'a CtxtTable,
     types: &'a SymbolTable<TypeId>,
-) -> impl Parser<Input, Output = Ctxt> + 'a
+) -> impl Parser<Input, Output = Context> + 'a
 where
     Input: Stream<Token = char> + 'a,
 {
     let var_parser = parse_variable::<Input>(ctxts, types);
     sep_end_by(var_parser, spaces()).map(move |vss: Vec<_>| {
-        // ctxts.complete();
         let mut res_vss = HashMap::new();
         vss.into_iter().for_each(|vs| {
             res_vss.extend(vs);
         });
-        let ctxt_id = ctxts.generator.current();
-        let mut new_ctxt = HashMap::new();
-        new_ctxt.insert(ctxt_id.clone(), res_vss.clone());
-        Ctxt(new_ctxt)
+
+        Context(res_vss)
     })
 }
 
@@ -41,7 +38,7 @@ fn test_parse_context() {
     let types = SymbolTable::<TypeId>::init_with(TypeId(3));
     types.insert("Bool".to_string(), TypeId(2));
     types.insert("Int".to_string(), TypeId(3));
-    // let _new_ctxt_id = ctxts.generator.pull();
+    
     let r = context_parser(&ctxts, &types).easy_parse(ctxt_example);
     dbg!(&ctxts);
     dbg!(&types);

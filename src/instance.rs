@@ -1,9 +1,9 @@
-use crate::{context::Ctxt, equation::Equation, schema::Schema};
+use crate::{context::Context, equation::Equation, schema::Schema};
 
 #[derive(Default, Clone)]
 pub struct Instance {
     pub schema: Schema,
-    pub elems: Ctxt,
+    pub elems: Context,
     pub data: Vec<Equation>,
 }
 

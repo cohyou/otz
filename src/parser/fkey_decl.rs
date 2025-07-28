@@ -26,11 +26,13 @@ where
 fn test_fkey_decl_parser() {
     use crate::combine::EasyParser;
 
-    let type_name_example = "#fkey Bool";
+    let input = "#fkey mgr: Emp -> Emp";
 
-    let opers = SymbolTable::<OperId>::init_with(OperId(2));
-    let types = SymbolTable::<TypeId>::init_with(TypeId(2));
-    let _r = fkey_decl_parser(&opers, &types).easy_parse(type_name_example);
-    dbg!(&opers);
-    assert_eq!(types.get("Bool"), Some(TypeId(2)));
+    let opers = SymbolTable::<OperId>::new();
+    opers.assign("mgr".to_string());
+    let types = SymbolTable::<TypeId>::new();
+    types.assign("Emp".to_string());
+    let result = fkey_decl_parser(&opers, &types).easy_parse(input);
+    dbg!(&result);
+    assert!(result.is_ok());
 }

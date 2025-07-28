@@ -35,19 +35,12 @@ where
                 right,
             }
         })
-    // ;
-    // combine::value(Equation {
-    //     context: crate::context::Ctxt(std::collections::HashMap::default()),
-    //     left: crate::term::TermInner::Var(VarId(0)),
-    //     right: crate::term::TermInner::Var(VarId(0)),
-    // })
 }
 
 #[test]
 fn test_terminner_equation_parser() {
     use crate::combine::EasyParser;
-    use crate::context::Ctxt;
-    use crate::id::CtxtId;
+    use crate::context::Context;
     use crate::id::VarId;
     use crate::term::TermInner;
     use std::collections::HashMap;
@@ -65,8 +58,7 @@ fn test_terminner_equation_parser() {
 
     let mut vars = HashMap::new();
     vars.insert(VarId(0), crate::r#type::Type::Unary(TypeId(1))); // Mocking a type for testing
-    let mut context = Ctxt::default();
-    context.0.insert(CtxtId(1), vars);
+    let context = Context(vars);
     assert_eq!(
         r,
         Ok((

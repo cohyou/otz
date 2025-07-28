@@ -26,11 +26,14 @@ where
 fn test_attr_decl_parser() {
     use combine::EasyParser;
 
-    let type_name_example = "#attr Bool";
+    let input = "#attr name: Student -> Str";
 
-    let opers = SymbolTable::<OperId>::init_with(OperId(2));
-    let types = SymbolTable::<TypeId>::init_with(TypeId(2));
-    let _r = attr_decl_parser(&opers, &types).easy_parse(type_name_example);
-    dbg!(&opers);
-    assert_eq!(types.get("Bool"), Some(TypeId(2)));
+    let opers = SymbolTable::<OperId>::new();
+    opers.assign("name".to_string());
+    let types = SymbolTable::<TypeId>::new();
+    types.assign("Student".to_string());
+    types.assign("Str".to_string());
+    let result = attr_decl_parser(&opers, &types).easy_parse(input);
+    dbg!(&result);
+    assert!(result.is_ok());
 }

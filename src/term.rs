@@ -1,4 +1,4 @@
-use crate::id::{OperId, VarId};
+use crate::{id::{OperId, VarId}};
 type Link<T> = std::rc::Rc<T>;
 
 #[derive(PartialEq, Clone)]
@@ -19,3 +19,8 @@ impl std::fmt::Debug for TermInner {
         }
     }
 }
+
+// pub struct Term {
+//     context: Context,
+//     inner: TermInner,
+// }

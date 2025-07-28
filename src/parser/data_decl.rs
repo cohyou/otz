@@ -6,10 +6,10 @@ use combine::{
 };
 
 use crate::{
-    context::Ctxt,
+    context::Context,
     context_table::CtxtTable,
     equation::Equation,
-    id::{CtxtId, OperId, VarId},
+    id::{OperId, VarId},
     parser::{term::terminner::oper::terminner_parser, DIRECTIVE_SIGN},
     r#type::Type,
     symbol_table::SymbolTable,
@@ -32,9 +32,9 @@ where
         .with(left_parser.skip(spaces()).skip(string("=").skip(spaces())))
         .and(right_parser)
         .map(|(left, right)| -> Equation {
-            let mut elems_map = HashMap::new();
-            elems_map.insert(CtxtId::default(), elems.borrow().clone());
-            let context = Ctxt(elems_map);
+            // let mut elems_map = HashMap::new();
+            // elems_map.insert(CtxtId::default(), elems.borrow().clone());
+            let context = Context(elems.borrow().clone());
             Equation {
                 context,
                 left,

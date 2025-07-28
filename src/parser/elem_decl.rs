@@ -28,9 +28,7 @@ where
         .map(move |ctxt| {
             let elems = {
                 let mut elems_ref = elems.borrow_mut();
-                ctxt.0.values().for_each(|v| {
-                    elems_ref.extend(v.clone());
-                });
+                elems_ref.extend(ctxt.0);
                 elems
             };
 

@@ -3,16 +3,9 @@ use std::{cell::RefCell, collections::HashMap};
 use combine::{attempt, parser::char::spaces, sep_end_by, Parser, Stream};
 
 use crate::{
-    context_table::CtxtTable,
-    equation::Equation,
-    id::{OperId, TypeId, VarId},
-    instance::Instance,
-    parser::{
+    context::Context, context_table::CtxtTable, equation::Equation, id::{OperId, TypeId, VarId}, instance::Instance, parser::{
         data_decl::data_decl_parser, elem_decl::elem_decl_parser, schema_decl::schema_decl_parser,
-    },
-    r#type::Type,
-    schema::Schema,
-    symbol_table::SymbolTable,
+    }, schema::Schema, symbol_table::SymbolTable, r#type::Type
 };
 
 pub fn instance_parser<'a, Input>(
@@ -45,9 +38,10 @@ where
         for decl in decls {
             match decl {
                 Decl::Schema(sch) => instance.schema = sch,
-                Decl::Elem(elem) => {
-                    dbg!(&elem);
-                    instance.elems.extend_to_default(elem)
+                Decl::Elem(elems) => {
+                    dbg!(&elems);
+                    instance.elems = Context(elems);
+                    // instance.elems.extend_to_default(elem)
                 }
                 Decl::Data(eq) => instance.data.push(eq),
             }

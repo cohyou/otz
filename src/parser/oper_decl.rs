@@ -8,7 +8,6 @@ use combine::parser::char::spaces;
 use combine::stream::Stream;
 use combine::Parser;
 
-/// 型名
 pub fn oper_decl_parser<'a, Input>(
     opers: &'a SymbolTable<OperId>,
     types: &'a SymbolTable<TypeId>,
@@ -26,11 +25,14 @@ where
 fn test_oper_decl_parser() {
     use crate::combine::EasyParser;
 
-    let type_name_example = "#sort Bool";
+    let input = "#func not: Bool -> Bool";
 
-    let opers = SymbolTable::<OperId>::init_with(OperId(2));
-    let types = SymbolTable::<TypeId>::init_with(TypeId(2));
-    let _r = oper_decl_parser(&opers, &types).easy_parse(type_name_example);
-    dbg!(&opers);
-    assert_eq!(types.get("Bool"), Some(TypeId(2)));
+    let opers = SymbolTable::<OperId>::new();
+    opers.assign("not".to_string());
+    let types = SymbolTable::<TypeId>::new();
+    types.assign("Bool".to_string());
+    
+    let result = oper_decl_parser(&opers, &types).easy_parse(input);
+    dbg!(&result);
+    assert!(result.is_ok());
 }
