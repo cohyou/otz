@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use combine::{
     parser::char::{spaces, string},
@@ -37,8 +37,8 @@ where
             let context = Context(elems.borrow().clone());
             Equation {
                 context,
-                left,
-                right,
+                left: Rc::new(left),
+                right: Rc::new(right),
             }
         })
 }

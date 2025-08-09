@@ -9,6 +9,8 @@ pub enum TermInner {
     Fun(OperId, Vec<Link<TermInner>>),
     Str(String),
     Int(usize),
+
+    Subst(VarId, Rc<TermInner>),
 }
 
 impl std::fmt::Debug for TermInner {
@@ -18,6 +20,7 @@ impl std::fmt::Debug for TermInner {
             TermInner::Fun(op_id, args) => write!(f, "Fun{:?}{:?}", op_id.0, args),
             TermInner::Str(s) => write!(f, "Str{:?}", s),
             TermInner::Int(i) => write!(f, "Int{:?}", i),
+            TermInner::Subst(varid, inner) => write!(f, "Subst[{:?}->{:?}]", varid, inner),
         }
     }
 }

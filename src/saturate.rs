@@ -1,5 +1,7 @@
 use crate::instance::Instance;
 
-pub fn saturate(instance: Instance) -> Instance {
-    instance
+impl Instance {
+    pub fn saturate(&self) -> Instance {
+        self.clone()
+    }
 }

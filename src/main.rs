@@ -24,6 +24,7 @@ fn main() {
     dbg!(&instance);
 
     use crate::eval::eval;
-    let queried = eval(instance);
+    use crate::eval::Query;
+    let queried = eval(instance, Query::default());
     dbg!(&queried);
 }

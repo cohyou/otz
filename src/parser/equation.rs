@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use combine::parser::char::{spaces, string};
 use combine::stream::Stream;
 use combine::Parser;
@@ -31,8 +33,8 @@ where
             ctxts.complete();
             Equation {
                 context,
-                left,
-                right,
+                left: Rc::new(left),
+                right: Rc::new(right),
             }
         })
 }
@@ -64,11 +66,11 @@ fn test_terminner_equation_parser() {
         Ok((
             Equation {
                 context: context,
-                left: TermInner::Fun(
+                left: Rc::new(TermInner::Fun(
                     OperId(1),
                     vec![TermInner::Fun(OperId(1), vec![TermInner::Var(VarId(0)).into()]).into()]
-                ),
-                right: TermInner::Var(VarId(0)),
+                )),
+                right: Rc::new(TermInner::Var(VarId(0))),
             },
             ""
         ))

@@ -1,6 +1,6 @@
 use autoincrement::prelude::*;
 
-#[derive(AsyncIncremental, PartialEq, Eq, Clone)]
+#[derive(AsyncIncremental, PartialEq, Eq, Clone, Default)]
 pub struct TypeId(pub usize);
 
 #[derive(AsyncIncremental, PartialEq, Eq, Clone)]
