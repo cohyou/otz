@@ -21,7 +21,3 @@ impl std::fmt::Debug for Instance {
             .finish()
     }
 }
-
-impl Instance {
-    pub fn deducible(&self, _eq: &Equation) -> bool { false }
-}

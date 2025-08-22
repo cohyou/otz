@@ -18,9 +18,9 @@ pub fn eval(instance: Instance, query: Query) -> Instance {
     let mut elements = vec![];
     for (_varid, _type) in saturated.elems.0 {
         for eq in query.r#where.iter() {
-            let substs = std::collections::HashMap::new(); // 実際にはvaridとtypeからつくる
-            let left_substed = eq.left_term().substitute(substs.clone());
-            let right_substed = eq.right_term().substitute(substs.clone());
+            let subst = std::collections::HashMap::new(); // 実際にはvaridとtypeからつくる
+            let left_substed = eq.left_term().substitute(&subst.clone());
+            let right_substed = eq.right_term().substitute(&subst.clone());
 
             let substituted_equation = Equation {
                 context: left_substed.context,
@@ -29,7 +29,7 @@ pub fn eval(instance: Instance, query: Query) -> Instance {
             };
 
             // substituted_equationがsaturatedから導けるかどうか。
-            // 導くことができれば、そのsubstsをテーブルの要素としてpushする
+            // 導くことができれば、そのsubstをテーブルの要素としてpushする
             if instance.deducible(&substituted_equation) {
                 elements.push(TermInner::Subst(VarId(0), Rc::new(TermInner::Int(0))));
             }            

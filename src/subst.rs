@@ -2,22 +2,24 @@ use std::{collections::HashMap, rc::Rc};
 
 use crate::{id::VarId, term::{Term, TermInner}};
 
+pub type Subst = HashMap<VarId, Rc<TermInner>>;
+
 impl Term {
-    pub fn substitute(&self, substs: HashMap<VarId, Rc<TermInner>>) -> Term {
+    pub fn substitute(&self, subst: &Subst) -> Term {
         let mut result = self.inner.clone();
-        for (var, term) in substs {
-            result = self.substitute_inner(var, term);
+        for (var, term) in subst {
+            result = self.substitute_inner(var, term.clone());
         }
         Term { context: self.context.clone(), inner: result }
     }
 
-    fn substitute_inner(&self, var: VarId, term: Rc<TermInner>) -> Rc<TermInner> {
+    fn substitute_inner(&self, var: &VarId, term: Rc<TermInner>) -> Rc<TermInner> {
         match term.as_ref() {
             TermInner::Var(_) => term,
             TermInner::Fun(oper_id, args) => {
                 Rc::new(TermInner::Fun(oper_id.clone(), args.iter()
                 .map(|arg| {
-                    self.substitute_inner(var.clone(), arg.clone())
+                    self.substitute_inner(var, arg.clone())
                 }).collect()))
             }
             _ => term,
@@ -43,6 +45,6 @@ fn test_substitute() {
     let v = Rc::new(TermInner::Int(100));
     substs.insert(VarId(0), v);
     
-    let result = term.substitute(substs);
+    let result = term.substitute(&substs);
     dbg!(result);
 }

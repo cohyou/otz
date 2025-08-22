@@ -9,6 +9,10 @@ mod theory;
 mod r#type;
 mod saturate;
 mod subst;
+mod subterm;
+mod rule;
+mod reduct;
+mod completion;
 
 pub mod context_table;
 pub mod instance;

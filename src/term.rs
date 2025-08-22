@@ -24,7 +24,7 @@ impl std::fmt::Debug for TermInner {
         }
     }
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Term {
     pub context: Context,
     pub inner: Rc<TermInner>,
