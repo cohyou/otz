@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{rc::Rc};
 
 use crate::{context::Context, id::{OperId, VarId}};
 type Link<T> = std::rc::Rc<T>;

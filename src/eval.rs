@@ -1,12 +1,27 @@
-use std::rc::Rc;
+use std::{collections::HashMap, rc::Rc};
 
-use crate::{context::Context, equation::Equation, id::{OperId, TypeId, VarId}, instance::Instance, term::{Term, TermInner}};
+use crate::{context::Context, equation::Equation, id::{OperId, TypeId, VarId}, instance::Instance, subst::Subst, term::{Term, TermInner}};
+
+/// A tableau over a schema S is a pair of:
+/// • a context over S, called the for clause, fr and
+/// • a set of quantifier-free equations between terms in Terms(S,fr), called the where clause wh.
+
+/// An uber-flower S →T consists of, for each entity t ∈ T:
+/// • a tableau (fr(t), wh(t)) over S and,
+/// • for each attribute att: t→t′∈T, a term [att] in Termst′ (S,frt), called the return clause for att, and
+/// • for each foreign key fk: t→t′∈T, a transform [fk] from the tableau for t′to the tableau for t (note
+/// the reversed direction), called the keys clause for fk,
+/// • such that an equality-preservation condition holds. We defer a description of this condition until
+/// section 4.3.1.
 
 #[derive(Default)]
-pub struct Query {
+pub struct Query(Vec<QueryEntity>);
+
+#[derive(Default)]
+struct QueryEntity {
     _entity: Vec<TypeId>,
-    r#_for: Vec<Context>,
-    r#where: Vec<Equation>,
+    fr: Vec<Context>,
+    wh: Vec<Equation>,
     _att: Vec<(OperId, Term)>,
     // keys: t -> t'
     // transform from tableau for t' to tableau for t
@@ -14,27 +29,13 @@ pub struct Query {
 }
 
 pub fn eval(instance: Instance, query: Query) -> Instance {
-    let saturated = instance.saturate();
-    let mut elements = vec![];
-    for (_varid, _type) in saturated.elems.0 {
-        for eq in query.r#where.iter() {
-            let subst = std::collections::HashMap::new(); // 実際にはvaridとtypeからつくる
-            let left_substed = eq.left_term().substitute(&subst.clone().into());
-            let right_substed = eq.right_term().substitute(&subst.into());
+    let saturated = instance.saturate();    
 
-            let substituted_equation = Equation {
-                context: left_substed.context,
-                left: left_substed.inner,
-                right: right_substed.inner,
-            };
+    // generator
+    let _substs = query.0.iter().map(|query_entity| {
+        eval_generators(&saturated, query_entity);
+    });
 
-            // substituted_equationがsaturatedから導けるかどうか。
-            // 導くことができれば、そのsubstをテーブルの要素としてpushする
-            if instance.deducible(&substituted_equation) {
-                elements.push(TermInner::Subst(VarId(0), Rc::new(TermInner::Int(0))));
-            }            
-        }
-    }
     // elementsをContextに変換してからInstanceに渡す
 
     // attの処理
@@ -42,8 +43,58 @@ pub fn eval(instance: Instance, query: Query) -> Instance {
     // foreign keyの処理
 
     Instance {
-        schema: saturated.schema,
+        schema: instance.schema,
         elems: Context::default(),
         data: vec![],
+    }
+}
+
+/// define the generators of entity tin eval(Q)(I) to be those I_EA environments for fr(t) which satisfy wh(t).
+/// t: entity
+/// fr(t) := {−−−→ v_i : s_i}:
+/// eval(Q)(I)(t) := { [−−−−→v_i→e_i] | I⊢eq[−−−−→v_i→e_i], ∀eq ∈ wh(t), ∀e_i ∈ I_EA(s_i)}
+fn eval_generators(instance: &Instance, query_entity: &QueryEntity) -> Vec<Subst> {
+    
+    query_entity.fr.iter().map(|context| {
+        
+        let substs = instance.elems.0.iter().filter_map(|e| {
+            // frからsubstを作る
+            let init = HashMap::new();
+            // for句のそれぞれのentityについて
+            let subst = context.0.iter().try_fold(init,|mut subst, (varid, tp)| {
+                (e.1 == tp).then(|| {
+                    subst.insert(varid.clone(), Rc::new(TermInner::var(e.0.clone())));
+                    subst
+                })
+            }).map(|m| Subst::new(m));
+            subst
+        }).collect::<Vec<_>>();                
+
+        // 一回Vecにせずに繋げた方が効率的だが分かりやすさのため一時的にこうする
+        let substs = substs.iter().filter(|subst| {
+            
+            // すべての等式を満たす必要がある(all)
+            query_entity.wh.iter().all(|eq| {
+                let left_substed = eq.left_term().substitute(&subst);
+                let right_substed = eq.right_term().substitute(&subst);
+
+                let substituted_equation = Equation {
+                    context: left_substed.context,
+                    left: left_substed.inner,
+                    right: right_substed.inner,
+                };
+
+                // substituted_equationがsaturatedから導けるかどうか
+                instance.deducible(&substituted_equation)
+            })
+        }).cloned().collect::<Vec<_>>();
+
+        substs
+    }).flatten().collect()
+}
+
+impl TermInner {
+    pub fn var(varid: VarId) -> Self {
+        TermInner::Var(varid)
     }
 }

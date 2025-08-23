@@ -2,6 +2,7 @@ use std::{collections::HashMap, rc::Rc};
 
 use crate::{id::VarId, subterm::Position, term::{Term, TermInner}};
 
+#[derive(Clone)]
 pub struct Subst(pub HashMap<VarId, Rc<TermInner>>);
 // impl IntoIterator for &Subst {
 //     type Item = <HashMap<VarId, Rc<TermInner>> as IntoIterator>::Item;
