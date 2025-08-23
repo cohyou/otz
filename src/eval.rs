@@ -19,8 +19,8 @@ pub fn eval(instance: Instance, query: Query) -> Instance {
     for (_varid, _type) in saturated.elems.0 {
         for eq in query.r#where.iter() {
             let subst = std::collections::HashMap::new(); // 実際にはvaridとtypeからつくる
-            let left_substed = eq.left_term().substitute(&subst.clone());
-            let right_substed = eq.right_term().substitute(&subst.clone());
+            let left_substed = eq.left_term().substitute(&subst.clone().into());
+            let right_substed = eq.right_term().substitute(&subst.into());
 
             let substituted_equation = Equation {
                 context: left_substed.context,

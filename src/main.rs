@@ -13,6 +13,7 @@ mod subterm;
 mod rule;
 mod reduct;
 mod completion;
+mod unify;
 
 pub mod context_table;
 pub mod instance;

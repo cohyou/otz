@@ -1,10 +1,13 @@
 use std::{collections::HashMap, rc::Rc};
 
-use crate::{equation::Equation, instance::Instance, rule::Rule, subst::Subst, subterm::{Position, Subterm}, term::{Term, TermInner}};
+use crate::{completion::complete, equation::Equation, instance::Instance, rule::Rule, subst::Subst, subterm::{Position, Subterm}, term::{Term, TermInner}};
 
 impl Instance {
     pub fn deducible(&self, eq: &Equation) -> bool {
-        let rules = self.complete();
+        // TODO: 本来はSchemaのconstraintsも必要
+        // let eqs = self.data.iter().map(Equation::to_rule).collect();
+        let eqs = &self.data;
+        let rules = complete(eqs);
         eq.is_reducible(&rules)
     }
 }
@@ -21,7 +24,7 @@ impl Equation {
 }
 
 impl Term {
-    fn normalize(&self, rules: &Vec<Rule>) -> Rc<Term> {
+    pub fn normalize(&self, rules: &Vec<Rule>) -> Rc<Term> {
         let mut term = Rc::new(self.clone());
         loop {
             let result = term.reduct(rules);
@@ -32,7 +35,7 @@ impl Term {
     }
 }
 
-struct Redex {
+pub struct Redex {
     term: Rc<Term>,
     pos: Position,
     subst: Subst,
@@ -70,31 +73,10 @@ impl Term {
 }
 
 impl Redex {
-    /// 項selfの部分項self/atをtoで置き換えた項`self[ at <- to ]`を得る。
-    fn apply(&self) -> Rc<Term> {
-        let applied = Term {
-            context: self.term.context.clone(),
-            inner: self.apply_inner(self.term.inner.clone(), vec![]),
-        };
-        Rc::new(applied)
-    }
-
-    fn apply_inner(&self, inner: Rc<TermInner>, pos: Position) -> Rc<TermInner> {
-        if pos == self.pos {
-            self.rule.after.substitute(&self.subst).inner
-        } else {
-            match inner.as_ref() {
-                TermInner::Fun(oid, args) => {
-                    let applied_args = args.iter().enumerate().map(|(idx, arg)| {
-                        let mut arg_pos = pos.clone();
-                        arg_pos.push(idx);
-                        self.apply_inner(arg.clone(), arg_pos)
-                    }).collect();
-                    Rc::new(TermInner::Fun(oid.clone(), applied_args))
-                },
-                _ => inner,
-            }            
-        }
+    /// 項termの部分項self/atをtoで置き換えた項`self[ at <- to ]`を得る。
+    pub fn apply(&self) -> Rc<Term> {
+        let to = self.rule.after.substitute(&self.subst);
+        self.term.replace(&self.pos, to.into())
     }
 }
 
@@ -109,15 +91,15 @@ impl Subterm {
         // σsがtermに一致するような代入σが存在するか？
         let pattern = rule.clone().before;        
         let mut matching_iterator = pattern.subterms().zip(self.term.subterms());
-        let init: Subst = HashMap::new();
+        let init = Subst::default();
         matching_iterator.try_fold(init, |mut subst, (pat_subterm, subterm)| {
             subterm.term.get_at(&pat_subterm.pos)
             .and_then(|t| {
                 // これまでのsubstを適用する
-                let new_t = t.substitute(&subst.clone());
+                let new_t = t.substitute(&subst);
                 pat_subterm.term.try_match(Rc::new(new_t))
                 .map(|new_subst| {
-                    subst.extend(new_subst);
+                    subst.0.extend(new_subst.0);
                     subst
                 })
             })
@@ -132,16 +114,16 @@ impl Term {
         match self.inner.as_ref() {
             TermInner::Var(vid) => {
                 let subst = HashMap::from([(vid.clone(), term.inner.clone())]);
-                Some(subst)
+                Some(subst.into())
             },
             TermInner::Fun(oid_pat, _) => {
                 if let TermInner::Fun(oid_tgt, _) = term.inner.as_ref() {
-                    (oid_pat == oid_tgt).then_some(HashMap::new())
+                    (oid_pat == oid_tgt).then_some(Subst::default())
                 } else {
                     None
                 }
             }
-            _ => (self == term.as_ref()).then_some(HashMap::new())
+            _ => (self == term.as_ref()).then_some(Subst::default())
         }
     }
 }
