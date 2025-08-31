@@ -1,16 +1,16 @@
 use std::{collections::HashMap, rc::Rc};
 
-use crate::{id::VarId, subst::Subst, term::{TermInner}};
+use crate::{id::VarId, subst::Subst, term::TermInner};
 
 /// TODO: s/tのcontextの扱いを確認する
 pub fn unify(s: Rc<TermInner>, t: Rc<TermInner>) -> Option<Subst> {
     use TermInner::{Fun, Int, Str, Var};
-println!("s:{:?} t:{:?}", s, t);
+
     match (s.as_ref(), t.as_ref()) {
         // 全く同じ内容なら
-        (Var(x), Var(y)) if x == y => None,
-        (Int(x), Int(y)) if x == y => None,
-        (Str(s1), Str(s2)) if s1 == s2 => None,
+        (Var(x), Var(y)) if x == y => Some(Subst::default()),
+        (Int(x), Int(y)) if x == y => Some(Subst::default()),
+        (Str(s1), Str(s2)) if s1 == s2 => Some(Subst::default()),
 
         // s,tのどちらかが変数
         // 変数をx, 他の項をuとする
@@ -26,21 +26,28 @@ println!("s:{:?} t:{:?}", s, t);
             is_same_oper
                 .then(|| {
                     let init = Subst::default();
-                    
-                    args_f.iter().zip(args_g).try_fold(init, |mut theta, (tk, sk)| {                        
-                        // 代入適用は演算子で定義してもいいかも theta[tk], theta[sk]   
-                        let tk_new = tk.substitute(&theta);
-                        let sk_new = sk.substitute(&theta);
-                        unify(tk_new, sk_new).map(|sigma| {
-                            // 合成は演算子で定義してもいいかも theta = sigma[theta];
-                            theta = sigma.compose(&theta);
-                        });
-                        Some(theta)
-                    })
+
+                    args_f
+                        .iter()
+                        .zip(args_g)
+                        .try_fold(init, |mut theta, (tk, sk)| {
+                            // 代入適用は演算子で定義してもいいかも theta[tk], theta[sk]
+                            let tk_new = tk.substitute(&theta);
+                            let sk_new = sk.substitute(&theta);
+                            unify(tk_new, sk_new).map(|sigma| {
+                                // 合成は演算子で定義してもいいかも theta = sigma[theta];
+                                theta = sigma.compose(&theta);
+                                // dbg!(&sigma, &theta);
+                                theta
+                            })
+                        })
                 })
                 .flatten()
         }
-        _ => unimplemented!(),
+        _t @ _ => {
+            /*dbg!(t);*/
+            None
+        }
     }
 }
 
@@ -53,19 +60,20 @@ impl Subst {
     fn compose(&self, sigma: &Subst) -> Subst {
         // let mut tau = self.clone();
         let sigma_new = HashMap::new();
-        let sig = sigma.0.iter().fold(sigma_new,|mut sig, (var, inner)| {
+        let sig = sigma.0.iter().fold(sigma_new, |mut sig, (var, inner)| {
             // xi ∈ D(σ)
-            let cond1 = TermInner::Var(var.clone()).substitute(&sigma).as_ref() != &TermInner::Var(var.clone());
+            let cond1 = TermInner::Var(var.clone()).substitute(&sigma).as_ref()
+                != &TermInner::Var(var.clone());
             // xi !≡ τ[si]
             let v = inner.substitute(self);
             let cond2 = v.as_ref() != &TermInner::Var(var.clone());
             (cond1 && cond2).then(|| {
                 sig.insert(var.clone(), v);
             });
-            
+
             sig
         });
-        dbg!(&sig);
+        // dbg!(&sig);
 
         let tau_new = HashMap::new();
         let mut ta = self.0.iter().fold(tau_new, |mut ta, (var, inner)| {
@@ -78,7 +86,7 @@ impl Subst {
 
             ta
         });
-        dbg!(&ta);
+        // dbg!(&ta);
 
         ta.extend(sig);
         Subst(ta)
@@ -93,19 +101,20 @@ impl Subst {
 //         }).for_each(|(k, v) | {
 //             map.insert(k, v);
 //         });
-        
+
 //         Subst(map)
 //     }
 // }
 impl From<Vec<(usize, VarId)>> for Subst {
     fn from(value: Vec<(usize, VarId)>) -> Self {
         let mut map = HashMap::new();
-        value.iter().map(|(var1, var2)| {
-            (VarId(*var1), Rc::new(TermInner::Var(var2.clone())))
-        }).for_each(|(k, v) | {
-            map.insert(k, v);
-        });
-        
+        value
+            .iter()
+            .map(|(var1, var2)| (VarId(*var1), Rc::new(TermInner::Var(var2.clone()))))
+            .for_each(|(k, v)| {
+                map.insert(k, v);
+            });
+
         Subst(map)
     }
 }
@@ -127,12 +136,17 @@ fn is_subterm_of(_vid: &VarId, _target: &TermInner) -> bool {
 
 #[cfg(test)]
 mod test {
-    use std::{rc::Rc};
+    use std::rc::Rc;
 
     use combine::Parser;
 
     use crate::{
-        context_table::CtxtTable, id::{OperId, VarId}, parser::term::terminner::oper::terminner_parser, subst::Subst, symbol_table::SymbolTable, unify::unify
+        context_table::CtxtTable,
+        id::{OperId, VarId},
+        parser::term::terminner::oper::terminner_parser,
+        subst::Subst,
+        symbol_table::SymbolTable,
+        unify::unify,
     };
 
     use rstest::*;
@@ -146,7 +160,7 @@ mod test {
         ctxts.assign_to_current("x0".to_string());
         ctxts.assign_to_current("x1".to_string());
         ctxts.assign_to_current("x2".to_string());
-        
+
         let mut subst1 = Subst::default();
         let inner1 = terminner_parser(&ctxts, &opers).parse("g!x1");
         subst1.insert(VarId(0), Rc::new(inner1.unwrap().0));

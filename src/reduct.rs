@@ -23,10 +23,7 @@ impl Instance {
 impl Equation {
     pub fn to_rule(&self) -> Rule {
         // TODO: 本来はそのままではなく向きを決めるアルゴリズムの実装が必要
-        Rule {
-            before: Rc::new(self.left_term()),
-            after: Rc::new(self.right_term()),
-        }
+        Rule::new(self.context.clone(), self.left.clone(), self.right.clone())
     }
 
     fn is_reducible(&self, rules: &Vec<Rule>) -> bool {
@@ -95,7 +92,7 @@ impl Term {
 impl Redex {
     /// 項termの部分項self/atをtoで置き換えた項`self[ at <- to ]`を得る。
     pub fn apply(&self) -> Rc<Term> {
-        let to = self.rule.after.substitute(&self.subst);
+        let to = self.rule.after().substitute(&self.subst);
         self.term.replace(&self.pos, to.into())
     }
 }
@@ -108,7 +105,7 @@ impl Subterm {
         // そのような出現位置をuとするとt/u ≡ σsとなる。
 
         // σsがtermに一致するような代入σが存在するか？
-        let pattern = rule.clone().before;
+        let pattern = rule.before();
         let mut matching_iterator = pattern.subterms().zip(self.term.subterms());
         let init = Subst::default();
         matching_iterator

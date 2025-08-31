@@ -37,7 +37,7 @@ impl Term {
         //         }
         //     }
         //     Some(t)
-        None
+        unimplemented!()
     }
 
     // /// 後順（ボトムアップ）をざっくり：前順を全部集めて反転

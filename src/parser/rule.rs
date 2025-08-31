@@ -11,7 +11,6 @@ use crate::{
     parser::{context::context_parser, term::terminner::oper::terminner_parser},
     rule::Rule,
     symbol_table::SymbolTable,
-    term::Term,
 };
 
 pub fn rule_parser<'a, Input>(
@@ -33,16 +32,7 @@ where
         .and(left_parser.skip(spaces()).skip(string("->").skip(spaces())))
         .and(right_parser)
         .map(|((context, before), after)| {
-            ctxts.complete();
-            Rule {
-                before: Rc::new(Term {
-                    context: context.clone(),
-                    inner: Rc::new(before),
-                }),
-                after: Rc::new(Term {
-                    context: context.clone(),
-                    inner: Rc::new(after),
-                }),
-            }
+            // ctxts.complete();
+            Rule::new(context.clone(), Rc::new(before), Rc::new(after))
         })
 }

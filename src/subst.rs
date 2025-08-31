@@ -106,7 +106,10 @@ fn replace_term_inner(
 }
 #[cfg(test)]
 mod test {
-    use crate::{context_table::CtxtTable, id::OperId, parser::term::terminner::oper::terminner_parser, symbol_table::SymbolTable};
+    use crate::{
+        context_table::CtxtTable, id::OperId, parser::term::terminner::oper::terminner_parser,
+        symbol_table::SymbolTable,
+    };
     use rstest::*;
 
     #[rstest]
