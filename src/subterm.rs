@@ -19,20 +19,24 @@ impl Term {
     /// 前順（トップダウン、左→右）で部分項を走査するイテレータ。
     pub fn subterms(&self) -> Subterms {
         Subterms {
-            stack: vec![Subterm { main: Rc::new(self.clone()), pos: vec![], term: Rc::new(self.clone()) }],
+            stack: vec![Subterm {
+                main: Rc::new(self.clone()),
+                pos: vec![],
+                term: Rc::new(self.clone()),
+            }],
         }
     }
 
     /// 位置で部分項を取得（見つからなければ None）
     pub fn get_at(&self, _pos: &[usize]) -> Option<Rc<Term>> {
-    //     let mut t = self;
-    //     for &i in pos {
-    //         match t {
-    //             Term::Fun { args, .. } => t = args.get(i)?,
-    //             Term::Var(_) => return None,
-    //         }
-    //     }
-    //     Some(t)
+        //     let mut t = self;
+        //     for &i in pos {
+        //         match t {
+        //             Term::Fun { args, .. } => t = args.get(i)?,
+        //             Term::Var(_) => return None,
+        //         }
+        //     }
+        //     Some(t)
         None
     }
 
@@ -43,7 +47,6 @@ impl Term {
     //     v.into_iter()
     // }
 }
-
 
 /// 内部はシンプルにLIFOスタック（DFS前順）。子は逆順でpushして左→右を維持。
 pub struct Subterms {
@@ -56,11 +59,21 @@ impl<'a> Iterator for Subterms {
     fn next(&mut self) -> Option<Self::Item> {
         let current = self.stack.pop()?;
 
-        if let TermInner::Fun(_, args) = current.term.inner.as_ref() {
-            for (i, _child) in args.iter().enumerate().rev() {
+        let current_term = current.term.clone();
+        if let TermInner::Fun(_, args) = current_term.inner.as_ref() {
+            for (i, child) in args.iter().enumerate().rev() {
                 let mut next_pos = current.pos.clone();
                 next_pos.push(i);
-                // self.stack.push(SubtermRef { pos: next_pos, term: child });
+                let t = current.clone().term;
+                let child_term = Term {
+                    context: t.clone().context.clone(),
+                    inner: child.clone(),
+                };
+                self.stack.push(Subterm {
+                    main: current.term.clone(),
+                    pos: next_pos,
+                    term: Rc::new(child_term),
+                });
             }
         }
 
@@ -68,40 +81,47 @@ impl<'a> Iterator for Subterms {
     }
 }
 
-/// ─────────────────────────────────────────────────────────
-/// 使い方イメージ
-/// ─────────────────────────────────────────────────────────
 #[cfg(test)]
-mod demo {
-//     use super::*;
+mod test {
+    use crate::r#type::Type;
+    use crate::{
+        context::Context,
+        context_table::CtxtTable,
+        id::{OperId, TypeId, VarId},
+        parser::term::terminner::terminner_parser_,
+        subterm::Position,
+        symbol_table::SymbolTable,
+        term::Term,
+    };
+    use std::{collections::HashMap, rc::Rc};
 
-//     #[test]
-//     fn enumerate_subterms() {
-//         // f(g(x), h(a, b))
-//         let t = Term::fun(
-//             "f",
-//             vec![
-//                 Term::fun("g", vec![Term::var("x")]),
-//                 Term::fun("h", vec![Term::var("a"), Term::var("b")]),
-//             ],
-//         );
+    #[test]
+    fn test_subterms1() {
+        use crate::combine::EasyParser;
 
-//         // 前順（トップダウン）
-//         let got: Vec<(Position, String)> = t
-//             .subterms()
-//             .map(|st| (st.pos, format!("{:?}", st.term)))
-//             .collect();
+        let opers = SymbolTable::<OperId>::new();
+        opers.assign("f".to_string());
+        let ctxts = CtxtTable::new();
+        ctxts.assign_to_current("a".to_string());
 
-//         // 例）最初は全体（位置[]）、次に [0] = g(x)、[0,0] = x、[1] = h(a,b)、[1,0] = a、[1,1] = b
-//         assert_eq!(got[0].0, vec![]);
-//         assert_eq!(got[1].0, vec![0]);
-//         assert_eq!(got[2].0, vec![0, 0]);
-//         assert_eq!(got[3].0, vec![1]);
-//         assert_eq!(got[4].0, vec![1, 0]);
-//         assert_eq!(got[5].0, vec![1, 1]);
+        // let input = "f![f![a]]";
+        let input = "f![f!a a f;]";
+        let mut parser = terminner_parser_(&ctxts, &opers);
 
-//         // 位置アクセス
-//         let sub = t.get_at(&[1, 0]).unwrap(); // a
-//         assert!(matches!(sub, Term::Var(s) if s == "a"));
-//     }
+        let result = parser.easy_parse(input);
+        dbg!(&result);
+        assert!(result.is_ok());
+
+        let terminner = result.unwrap().0;
+        let context = Context(HashMap::from([(VarId(0), Type::Unary(TypeId(0)))]));
+        let term = Term {
+            context: context,
+            inner: Rc::new(terminner),
+        };
+        let got: Vec<(Position, String)> = term
+            .subterms()
+            .map(|st| (st.pos, format!("{:?}", st.term)))
+            .collect();
+        dbg!(&got);
+    }
 }

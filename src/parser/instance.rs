@@ -3,9 +3,17 @@ use std::{cell::RefCell, collections::HashMap};
 use combine::{attempt, parser::char::spaces, sep_end_by, Parser, Stream};
 
 use crate::{
-    context::Context, context_table::CtxtTable, equation::Equation, id::{OperId, TypeId, VarId}, instance::Instance, parser::{
+    context::Context,
+    context_table::CtxtTable,
+    equation::Equation,
+    id::{OperId, TypeId, VarId},
+    instance::Instance,
+    parser::{
         data_decl::data_decl_parser, elem_decl::elem_decl_parser, schema_decl::schema_decl_parser,
-    }, schema::Schema, symbol_table::SymbolTable, r#type::Type
+    },
+    r#type::Type,
+    schema::Schema,
+    symbol_table::SymbolTable,
 };
 
 pub fn instance_parser<'a, Input>(

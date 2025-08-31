@@ -6,3 +6,6 @@ edition = "2021"
 [dependencies]
 autoincrement = "1.0.1"
 combine = "4.6.7"
+
+[dev-dependencies]
+rstest = "0.26.1"

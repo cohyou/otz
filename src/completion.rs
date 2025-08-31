@@ -1,9 +1,19 @@
 use std::rc::Rc;
 
-use crate::{equation::Equation, rule::Rule, subst::Subst, subterm::{Position, Subterm}, term::{Term, TermInner}, unify::unify};
+use crate::{
+    equation::Equation,
+    rule::Rule,
+    subst::Subst,
+    subterm::{Position, Subterm},
+    term::{Term, TermInner},
+    unify::unify,
+};
 
 pub fn complete(eqs: &Vec<Equation>) -> Vec<Rule> {
-    let mut rules = eqs.iter().map(|eq| analyse(&eq.left, &eq.right)).collect::<Vec<_>>();
+    let mut rules = eqs
+        .iter()
+        .map(|eq| analyse(&eq.left, &eq.right))
+        .collect::<Vec<_>>();
     let mut critical_pairs = make_critical_pair_set(&rules);
 
     while !critical_pairs.is_empty() {
@@ -15,9 +25,10 @@ pub fn complete(eqs: &Vec<Equation>) -> Vec<Rule> {
             let new_rule = analyse(&normal_p.inner, &normal_q.inner);
             rules.push(new_rule.clone());
             // α→βと既存rules内のrule毎の危険対の集合を作る
-            let new_pairs = rules.iter().flat_map(|rule| {
-                find_critical_pairs(&new_rule, rule)
-            }).collect::<Vec<_>>();
+            let new_pairs = rules
+                .iter()
+                .flat_map(|rule| find_critical_pairs(&new_rule, rule))
+                .collect::<Vec<_>>();
             critical_pairs.extend(new_pairs);
         }
     }
@@ -33,12 +44,21 @@ type CriticalPair = (Rc<Term>, Rc<Term>);
 fn make_critical_pair_set(rules: &Vec<Rule>) -> Vec<CriticalPair> {
     // それぞれ2つのruleを取り出して、find_critical_pairsする
     // 同一ruleも対象
-    rules.iter().flat_map(|rule1| {
-        rules.iter().flat_map(|rule2| {
-            rule1.check_overlap(rule2).iter()
-                .map(Overlap::to_critical_pair).collect::<Vec<_>>()
-        }).collect::<Vec<_>>()
-    }).collect()
+    rules
+        .iter()
+        .flat_map(|rule1| {
+            rules
+                .iter()
+                .flat_map(|rule2| {
+                    rule1
+                        .check_overlap(rule2)
+                        .iter()
+                        .map(Overlap::to_critical_pair)
+                        .collect::<Vec<_>>()
+                })
+                .collect::<Vec<_>>()
+        })
+        .collect()
 }
 
 fn find_critical_pairs(rule1: &Rule, rule2: &Rule) -> Vec<CriticalPair> {
@@ -50,17 +70,17 @@ fn find_critical_pairs(rule1: &Rule, rule2: &Rule) -> Vec<CriticalPair> {
     let pairs2 = overlaps2.iter().map(Overlap::to_critical_pair);
     pairs1.chain(pairs2).collect()
 }
-
+#[derive(Debug)]
 struct Overlap {
-    pub overlapper: Rule,  // 重なる側
-    pub overlappee: Rule,  // 重なられる側
+    pub overlapper: Rule, // 重なる側
+    pub overlappee: Rule, // 重なられる側
     pub pos: Position,
     pub subst: Subst,
 }
 
 impl Rule {
     /// r1:s1->t1 r2:s2->t2について、次の条件を満たすとき、r2はr1に重なるという。
-    /// 
+    ///
     /// ある出現位置u ∈ O(s1)と代入θが存在して、以下を満たす
     /// [s1/uが変数ではない and θ(s1/u) ≡ θs2]
     /// このθは、s1/uとs2の単一化代入である。
@@ -72,28 +92,29 @@ impl Rule {
 
         let is_same_rule = self == from;
 
-        s1.subterms().filter_map(|subterm: Subterm| {
-            let s1_sub = subterm.term;
-            // s1/uが変数なら対象外
-            let s1_is_not_var = !matches!(s1_sub.inner.as_ref(), TermInner::Var(_));
-            // r1≡r2ならu≠ε(恒等写像=無意味な置換になってしまう)
-            let is_not_identity = is_same_rule && !subterm.pos.is_empty();
+        s1.subterms()
+            .filter_map(|subterm: Subterm| {
+                let s1_sub = subterm.term;
+                // s1/uが変数なら対象外
+                let s1_is_not_var = !matches!(s1_sub.inner.as_ref(), TermInner::Var(_));
+                // r1≡r2ならu≠ε(恒等写像=無意味な置換になってしまう)
+                let is_not_identity = is_same_rule && !subterm.pos.is_empty();
 
-            // 上記を前提とする
-            (s1_is_not_var && is_not_identity).then(|| {
-                unify(s1_sub.inner.clone(), s2.inner.clone())
-                .map(|theta| {
-                    (subterm.pos, theta)
-                })
-            }).flatten()
-        }).map(|(pos, theta)| {
-            Overlap {
+                // 上記を前提とする
+                (s1_is_not_var && is_not_identity)
+                    .then(|| {
+                        unify(s1_sub.inner.clone(), s2.inner.clone())
+                            .map(|theta| (subterm.pos, theta))
+                    })
+                    .flatten()
+            })
+            .map(|(pos, theta)| Overlap {
                 overlapper: from.clone(),
                 overlappee: self.clone(),
                 pos: pos,
-                subst: theta
-            }
-        }).collect()
+                subst: theta,
+            })
+            .collect()
     }
 }
 
@@ -106,7 +127,7 @@ impl Overlap {
         // 重なりを危険対に変換する
 
         // θs1[u<-t2]
-        let s1 = self.overlappee.clone().before;        
+        let s1 = self.overlappee.clone().before;
         let to = self.overlapper.clone().after;
         let left = s1.substitute(&self.subst).replace(&self.pos, to);
 
@@ -114,5 +135,45 @@ impl Overlap {
         let t1 = self.overlappee.clone().after;
         let right = Rc::new(t1.substitute(&self.subst));
         (left, right)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use combine::Parser;
+
+    use crate::{
+        context_table::CtxtTable,
+        id::{OperId, TypeId},
+        parser::rule::rule_parser,
+        symbol_table::SymbolTable,
+    };
+
+    #[test]
+    fn test_check_overlap() {
+        let types = SymbolTable::<TypeId>::new();
+        types.assign("Int".to_string());
+        let opers = SymbolTable::<OperId>::new();
+        opers.assign("f".to_string());
+        opers.assign("g".to_string());
+        let ctxts = CtxtTable::new();
+        ctxts.assign_to_current("x".to_string());
+        ctxts.assign_to_current("y".to_string());
+        ctxts.assign_to_current("z".to_string());
+
+        let input_rule1 = "x: Int y: Int z: Int | f![f![x y] z] -> f![x f![y z]]";
+        let input_rule2 = "x: Int | f![x g!x] -> 0";
+        let rule1 = rule_parser(&types, &ctxts, &opers).parse(input_rule1);
+        let rule2 = rule_parser(&types, &ctxts, &opers).parse(input_rule2);
+        dbg!(&rule1);
+        dbg!(&rule2);
+        let overlap1 = rule1
+            .clone()
+            .unwrap()
+            .0
+            .check_overlap(&rule2.clone().unwrap().0);
+        let overlap2 = rule2.unwrap().0.check_overlap(&rule1.unwrap().0);
+        dbg!(&overlap1);
+        dbg!(&overlap2);
     }
 }

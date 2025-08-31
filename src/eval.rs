@@ -1,6 +1,13 @@
 use std::{collections::HashMap, rc::Rc};
 
-use crate::{context::Context, equation::Equation, id::{OperId, TypeId, VarId}, instance::Instance, subst::Subst, term::{Term, TermInner}};
+use crate::{
+    context::Context,
+    equation::Equation,
+    id::{OperId, TypeId, VarId},
+    instance::Instance,
+    subst::Subst,
+    term::{Term, TermInner},
+};
 
 /// A tableau over a schema S is a pair of:
 /// • a context over S, called the for clause, fr and
@@ -25,11 +32,11 @@ struct QueryEntity {
     _att: Vec<(OperId, Term)>,
     // keys: t -> t'
     // transform from tableau for t' to tableau for t
-    _keys: Vec<(OperId, VarId, Term)>
+    _keys: Vec<(OperId, VarId, Term)>,
 }
 
 pub fn eval(instance: Instance, query: Query) -> Instance {
-    let saturated = instance.saturate();    
+    let saturated = instance.saturate();
 
     // generator
     let _substs = query.0.iter().map(|query_entity| {
@@ -54,43 +61,58 @@ pub fn eval(instance: Instance, query: Query) -> Instance {
 /// fr(t) := {−−−→ v_i : s_i}:
 /// eval(Q)(I)(t) := { [−−−−→v_i→e_i] | I⊢eq[−−−−→v_i→e_i], ∀eq ∈ wh(t), ∀e_i ∈ I_EA(s_i)}
 fn eval_generators(instance: &Instance, query_entity: &QueryEntity) -> Vec<Subst> {
-    
-    query_entity.fr.iter().map(|context| {
-        
-        let substs = instance.elems.0.iter().filter_map(|e| {
-            // frからsubstを作る
-            let init = HashMap::new();
-            // for句のそれぞれのentityについて
-            let subst = context.0.iter().try_fold(init,|mut subst, (varid, tp)| {
-                (e.1 == tp).then(|| {
-                    subst.insert(varid.clone(), Rc::new(TermInner::var(e.0.clone())));
+    query_entity
+        .fr
+        .iter()
+        .map(|context| {
+            let substs = instance
+                .elems
+                .0
+                .iter()
+                .filter_map(|e| {
+                    // frからsubstを作る
+                    let init = HashMap::new();
+                    // for句のそれぞれのentityについて
+                    let subst = context
+                        .0
+                        .iter()
+                        .try_fold(init, |mut subst, (varid, tp)| {
+                            (e.1 == tp).then(|| {
+                                subst.insert(varid.clone(), Rc::new(TermInner::var(e.0.clone())));
+                                subst
+                            })
+                        })
+                        .map(|m| Subst::new(m));
                     subst
                 })
-            }).map(|m| Subst::new(m));
-            subst
-        }).collect::<Vec<_>>();                
+                .collect::<Vec<_>>();
 
-        // 一回Vecにせずに繋げた方が効率的だが分かりやすさのため一時的にこうする
-        let substs = substs.iter().filter(|subst| {
-            
-            // すべての等式を満たす必要がある(all)
-            query_entity.wh.iter().all(|eq| {
-                let left_substed = eq.left_term().substitute(&subst);
-                let right_substed = eq.right_term().substitute(&subst);
+            // 一回Vecにせずに繋げた方が効率的だが分かりやすさのため一時的にこうする
+            let substs = substs
+                .iter()
+                .filter(|subst| {
+                    // すべての等式を満たす必要がある(all)
+                    query_entity.wh.iter().all(|eq| {
+                        let left_substed = eq.left_term().substitute(&subst);
+                        let right_substed = eq.right_term().substitute(&subst);
 
-                let substituted_equation = Equation {
-                    context: left_substed.context,
-                    left: left_substed.inner,
-                    right: right_substed.inner,
-                };
+                        let substituted_equation = Equation {
+                            context: left_substed.context,
+                            left: left_substed.inner,
+                            right: right_substed.inner,
+                        };
 
-                // substituted_equationがsaturatedから導けるかどうか
-                instance.deducible(&substituted_equation)
-            })
-        }).cloned().collect::<Vec<_>>();
+                        // substituted_equationがsaturatedから導けるかどうか
+                        instance.deducible(&substituted_equation)
+                    })
+                })
+                .cloned()
+                .collect::<Vec<_>>();
 
-        substs
-    }).flatten().collect()
+            substs
+        })
+        .flatten()
+        .collect()
 }
 
 impl TermInner {

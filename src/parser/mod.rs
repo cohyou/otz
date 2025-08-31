@@ -8,6 +8,7 @@ mod fkey_decl;
 mod instance;
 pub mod oper;
 mod oper_decl;
+pub mod rule;
 mod schema;
 mod schema_decl;
 pub mod term;

@@ -9,10 +9,11 @@ pub struct Instance {
 
 impl std::fmt::Debug for Instance {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let data = self.data.iter()
-            .map(|d| {
-                format!("{:?} = {:?}", d.left.clone(), d.right.clone())
-            }).collect::<Vec<_>>();
+        let data = self
+            .data
+            .iter()
+            .map(|d| format!("{:?} = {:?}", d.left.clone(), d.right.clone()))
+            .collect::<Vec<_>>();
 
         f.debug_struct("Instance")
             .field("schema", &self.schema)

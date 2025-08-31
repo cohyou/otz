@@ -11,7 +11,11 @@ pub struct Equation {
 
 impl std::fmt::Debug for Equation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?} | {:?} = {:?}", self.context.0, self.left, self.right)
+        write!(
+            f,
+            "{:?} | {:?} = {:?}",
+            self.context.0, self.left, self.right
+        )
     }
 }
 

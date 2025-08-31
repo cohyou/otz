@@ -4,8 +4,8 @@ use crate::{id::VarId, subst::Subst, term::{TermInner}};
 
 /// TODO: s/tのcontextの扱いを確認する
 pub fn unify(s: Rc<TermInner>, t: Rc<TermInner>) -> Option<Subst> {
-    use TermInner::{Var, Int, Str, Fun};
-    
+    use TermInner::{Fun, Int, Str, Var};
+println!("s:{:?} t:{:?}", s, t);
     match (s.as_ref(), t.as_ref()) {
         // 全く同じ内容なら
         (Var(x), Var(y)) if x == y => None,
@@ -14,40 +14,99 @@ pub fn unify(s: Rc<TermInner>, t: Rc<TermInner>) -> Option<Subst> {
 
         // s,tのどちらかが変数
         // 変数をx, 他の項をuとする
-        (Var(x), u) |
-        (u, Var(x)) => 
-            is_subterm_of(x, u).then_some(
-                HashMap::from([(x.clone(), Rc::new(u.clone()))]).into()
-            ),
+        (Var(x), u) | (u, Var(x)) => (!is_subterm_of(x, u))
+            .then_some(HashMap::from([(x.clone(), Rc::new(u.clone()))]).into()),
 
         // s,tが関数
-        (Fun(oid_f, args_f), Fun(oid_g, args_g))  => {
+        (Fun(oid_f, args_f), Fun(oid_g, args_g)) => {
             // t≡f(t1,...,tn),s≡g(s1,...,sm)とする
             // 前提: fとgが同じ関数 and 引数の数も同じ f ≡ g || m = n
             let is_same_oper = oid_f == oid_g && args_f.len() == args_g.len();
 
-            is_same_oper.then(|| {             
-                let init = Subst::default();
-                args_f.iter().zip(args_g).try_fold(init,|theta, (tk, sk)| {
-                    // 代入適用は演算子で定義してもいいかも theta[tk], theta[sk]
-                    let s = sk.substitute(&theta);
-                    let t = tk.substitute(&theta);
-                    unify(t, s).map(|mut sigma| {
-                        // 合成は演算子で定義してもいいかも theta = sigma[theta];
-                        sigma.compose(theta)
+            is_same_oper
+                .then(|| {
+                    let init = Subst::default();
+                    
+                    args_f.iter().zip(args_g).try_fold(init, |mut theta, (tk, sk)| {                        
+                        // 代入適用は演算子で定義してもいいかも theta[tk], theta[sk]   
+                        let tk_new = tk.substitute(&theta);
+                        let sk_new = sk.substitute(&theta);
+                        unify(tk_new, sk_new).map(|sigma| {
+                            // 合成は演算子で定義してもいいかも theta = sigma[theta];
+                            theta = sigma.compose(&theta);
+                        });
+                        Some(theta)
                     })
                 })
-            }).flatten()
-        }             
+                .flatten()
+        }
         _ => unimplemented!(),
     }
 }
 
 impl Subst {
     // 代入の合成を行う
-    fn compose(&mut self, other: Subst) -> Subst {
-        self.0.extend(other.0);
-        Subst(self.0.clone())
+    // σ={x1:s1, ..., xn:sn}, τ={y1:t1, ..., yn:tn}
+    // τσ=
+    // {xi:τ[si] | xi ∈ D(σ) and xi !≡ τ[si], i=1~n} ∪
+    // {yi:ti | yi ∈ D(τ) - D(σ), i=1~m}
+    fn compose(&self, sigma: &Subst) -> Subst {
+        // let mut tau = self.clone();
+        let sigma_new = HashMap::new();
+        let sig = sigma.0.iter().fold(sigma_new,|mut sig, (var, inner)| {
+            // xi ∈ D(σ)
+            let cond1 = TermInner::Var(var.clone()).substitute(&sigma).as_ref() != &TermInner::Var(var.clone());
+            // xi !≡ τ[si]
+            let v = inner.substitute(self);
+            let cond2 = v.as_ref() != &TermInner::Var(var.clone());
+            (cond1 && cond2).then(|| {
+                sig.insert(var.clone(), v);
+            });
+            
+            sig
+        });
+        dbg!(&sig);
+
+        let tau_new = HashMap::new();
+        let mut ta = self.0.iter().fold(tau_new, |mut ta, (var, inner)| {
+            // yi ∈ D(τ) - D(σ)
+            // var is in sigma's varが入っていると除く
+            let cond = sigma.0.keys().position(|k| k == var).is_none();
+            cond.then(|| {
+                ta.insert(var.clone(), inner.clone());
+            });
+
+            ta
+        });
+        dbg!(&ta);
+
+        ta.extend(sig);
+        Subst(ta)
+    }
+}
+
+// impl From<Vec<(usize, TermInner)>> for Subst {
+//     fn from(value: Vec<(usize, TermInner)>) -> Self {
+//         let mut map = HashMap::new();
+//         value.iter().map(|(var1, terminner)| {
+//             (VarId(*var1), Rc::new(terminner))
+//         }).for_each(|(k, v) | {
+//             map.insert(k, v);
+//         });
+        
+//         Subst(map)
+//     }
+// }
+impl From<Vec<(usize, VarId)>> for Subst {
+    fn from(value: Vec<(usize, VarId)>) -> Self {
+        let mut map = HashMap::new();
+        value.iter().map(|(var1, var2)| {
+            (VarId(*var1), Rc::new(TermInner::Var(var2.clone())))
+        }).for_each(|(k, v) | {
+            map.insert(k, v);
+        });
+        
+        Subst(map)
     }
 }
 
@@ -64,4 +123,59 @@ impl Subst {
 fn is_subterm_of(_vid: &VarId, _target: &TermInner) -> bool {
     // target.subterms().any(|t| t.term.as_ref() == self)
     false
+}
+
+#[cfg(test)]
+mod test {
+    use std::{rc::Rc};
+
+    use combine::Parser;
+
+    use crate::{
+        context_table::CtxtTable, id::{OperId, VarId}, parser::term::terminner::oper::terminner_parser, subst::Subst, symbol_table::SymbolTable, unify::unify
+    };
+
+    use rstest::*;
+
+    #[test]
+    fn test_compose() {
+        let opers = SymbolTable::<OperId>::new();
+        opers.assign("f".to_string());
+        opers.assign("g".to_string());
+        let ctxts = CtxtTable::new();
+        ctxts.assign_to_current("x0".to_string());
+        ctxts.assign_to_current("x1".to_string());
+        ctxts.assign_to_current("x2".to_string());
+        
+        let mut subst1 = Subst::default();
+        let inner1 = terminner_parser(&ctxts, &opers).parse("g!x1");
+        subst1.insert(VarId(0), Rc::new(inner1.unwrap().0));
+        let mut subst2 = Subst::default();
+        let inner2 = terminner_parser(&ctxts, &opers).parse("g!x2");
+        subst2.insert(VarId(1), Rc::new(inner2.unwrap().0));
+        // let subst = subst1.compose(subst2);
+        let subst = subst2.compose(&subst1);
+        dbg!(subst);
+    }
+
+    #[rstest]
+    #[case("x1", "g![x2]")]
+    #[case("x0", "g![x1]")]
+    #[case("g![x1]", "x0")]
+    // #[case("f![x0]", "f![g![x1]]")]
+    #[case("f![x0 x1]", "f![g![x1] g![x2]]")]
+    fn test_unify(#[case] t1: &str, #[case] t2: &str) {
+        let opers = SymbolTable::<OperId>::new();
+        opers.assign("f".to_string());
+        opers.assign("g".to_string());
+        let ctxts = CtxtTable::new();
+        ctxts.assign_to_current("x0".to_string());
+        ctxts.assign_to_current("x1".to_string());
+        ctxts.assign_to_current("x2".to_string());
+        let term1 = terminner_parser(&ctxts, &opers).parse(t1);
+        let term2 = terminner_parser(&ctxts, &opers).parse(t2);
+
+        let subst = unify(Rc::new(term2.unwrap().0), Rc::new(term1.unwrap().0));
+        dbg!(&subst);
+    }
 }

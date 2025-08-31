@@ -1,6 +1,9 @@
-use std::{rc::Rc};
+use std::rc::Rc;
 
-use crate::{context::Context, id::{OperId, VarId}};
+use crate::{
+    context::Context,
+    id::{OperId, VarId},
+};
 type Link<T> = std::rc::Rc<T>;
 
 #[derive(PartialEq, Clone)]
@@ -24,8 +27,14 @@ impl std::fmt::Debug for TermInner {
         }
     }
 }
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct Term {
     pub context: Context,
     pub inner: Rc<TermInner>,
+}
+
+impl std::fmt::Debug for Term {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.inner)
+    }
 }

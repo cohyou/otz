@@ -1,26 +1,26 @@
 extern crate combine;
 
+mod completion;
 mod context;
 mod equation;
 mod id;
 mod oper;
-mod term;
-mod theory;
-mod r#type;
+mod reduct;
+mod rule;
 mod saturate;
 mod subst;
 mod subterm;
-mod rule;
-mod reduct;
-mod completion;
+mod term;
+mod theory;
+mod r#type;
 mod unify;
 
 pub mod context_table;
+pub mod eval;
 pub mod instance;
 pub mod parser;
 pub mod schema;
 pub mod symbol_table;
-pub mod eval;
 
 fn main() {
     use crate::parser::parse_instance;

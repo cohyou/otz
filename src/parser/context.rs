@@ -38,7 +38,7 @@ fn test_parse_context() {
     let types = SymbolTable::<TypeId>::init_with(TypeId(3));
     types.insert("Bool".to_string(), TypeId(2));
     types.insert("Int".to_string(), TypeId(3));
-    
+
     let r = context_parser(&ctxts, &types).easy_parse(ctxt_example);
     dbg!(&ctxts);
     dbg!(&types);

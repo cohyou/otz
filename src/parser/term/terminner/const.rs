@@ -12,7 +12,7 @@ pub fn terminner_const_parser<'a, Input>(
 where
     Input: Stream<Token = char> + 'a,
 {
-    many1(alpha_num()).skip(string("!")).map(|c: Vec<_>| {
+    many1(alpha_num()).skip(string(";")).map(|c: Vec<_>| {
         let name: String = c.into_iter().collect();
         let oper_id = opers
             .get(name.as_ref())
@@ -28,7 +28,7 @@ fn test_terminner_const_parser() {
     let opers = SymbolTable::<OperId>::new();
     opers.assign("f".to_string());
 
-    let input = "f!";
+    let input = "f;";
     let result = terminner_const_parser(&opers).easy_parse(input);
     dbg!(&result);
     assert!(result.is_ok());

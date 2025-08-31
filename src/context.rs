@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::id::{VarId};
+use crate::id::VarId;
 use crate::r#type::Type;
 
 #[derive(PartialEq, Clone, Default)]

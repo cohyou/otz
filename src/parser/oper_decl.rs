@@ -31,7 +31,7 @@ fn test_oper_decl_parser() {
     opers.assign("not".to_string());
     let types = SymbolTable::<TypeId>::new();
     types.assign("Bool".to_string());
-    
+
     let result = oper_decl_parser(&opers, &types).easy_parse(input);
     dbg!(&result);
     assert!(result.is_ok());
