@@ -5,7 +5,7 @@ use crate::{
     equation::Equation,
     id::{OperId, TypeId, VarId},
     instance::Instance,
-    subst::Subst,
+    subst::{Subst, Var},
     term::{Term, TermInner},
 };
 
@@ -78,7 +78,7 @@ fn eval_generators(instance: &Instance, query_entity: &QueryEntity) -> Vec<Subst
                         .iter()
                         .try_fold(init, |mut subst, (varid, tp)| {
                             (e.1 == tp).then(|| {
-                                subst.insert(varid.clone(), Rc::new(TermInner::var(e.0.clone())));
+                                subst.insert(Var::Id(varid.clone()), Rc::new(TermInner::var(e.0.clone())));
                                 subst
                             })
                         })

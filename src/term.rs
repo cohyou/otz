@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use crate::{
     context::Context,
-    id::{OperId, VarId},
+    id::{OperId, VarId}, rule::{RuleId, RuleKind},
 };
 type Link<T> = std::rc::Rc<T>;
 
@@ -12,6 +12,8 @@ pub enum TermInner {
     Fun(OperId, Vec<Link<TermInner>>),
     Str(String),
     Int(usize),
+
+    RuledVar(VarId, RuleId, RuleKind),
 
     Subst(VarId, Rc<TermInner>),
 }
@@ -23,6 +25,9 @@ impl std::fmt::Debug for TermInner {
             TermInner::Fun(op_id, args) => write!(f, "Fun{:?}{:?}", op_id.0, args),
             TermInner::Str(s) => write!(f, "Str{:?}", s),
             TermInner::Int(i) => write!(f, "Int{:?}", i),
+
+            TermInner::RuledVar(vid, rid, kind) => write!(f, "Var<{:?},{:?},{:?}>", vid.0, rid, kind),
+
             TermInner::Subst(varid, inner) => write!(f, "Subst[{:?}->{:?}]", varid, inner),
         }
     }

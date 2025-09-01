@@ -5,7 +5,7 @@ use crate::{
     equation::Equation,
     instance::Instance,
     rule::Rule,
-    subst::Subst,
+    subst::{Subst, Var},
     subterm::{Position, Subterm},
     term::{Term, TermInner},
 };
@@ -127,7 +127,11 @@ impl Term {
     fn try_match(&self, term: Rc<Term>) -> Option<Subst> {
         match self.inner.as_ref() {
             TermInner::Var(vid) => {
-                let subst = HashMap::from([(vid.clone(), term.inner.clone())]);
+                let subst = HashMap::from([(Var::Id(vid.clone()), term.inner.clone())]);
+                Some(subst.into())
+            }
+            TermInner::RuledVar(vid,rid,kind) => {
+                let subst = HashMap::from([(Var::Ruled(vid.clone(),*rid,kind.clone()), term.inner.clone())]);
                 Some(subst.into())
             }
             TermInner::Fun(oid_pat, _) => {

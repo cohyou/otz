@@ -1,12 +1,16 @@
 use std::{collections::HashMap, rc::Rc};
 
-use crate::{id::VarId, subst::Subst, term::TermInner};
+use crate::{id::VarId, rule::RuleKind, subst::{Subst, Var}, term::TermInner};
 
 /// TODO: s/tのcontextの扱いを確認する
 pub fn unify(s: Rc<TermInner>, t: Rc<TermInner>) -> Option<Subst> {
-    use TermInner::{Fun, Int, Str, Var};
+    use TermInner::{Fun, Int, Str, Var, RuledVar};
 
     match (s.as_ref(), t.as_ref()) {
+        (rv1 @ RuledVar(_,_,_), rv2 @ RuledVar(_,_,_)) if rv1 == rv2 => Some(Subst::default()),
+        (rv1 @ RuledVar(vid,rid,kind), u) | (u, rv1 @ RuledVar(vid,rid,kind)) => (!is_subterm_of2(rv1, u))
+            .then_some(HashMap::from([(crate::subst::Var::Ruled(vid.clone(),*rid,kind.clone()), Rc::new(u.clone()))]).into()),
+
         // 全く同じ内容なら
         (Var(x), Var(y)) if x == y => Some(Subst::default()),
         (Int(x), Int(y)) if x == y => Some(Subst::default()),
@@ -15,8 +19,8 @@ pub fn unify(s: Rc<TermInner>, t: Rc<TermInner>) -> Option<Subst> {
         // s,tのどちらかが変数
         // 変数をx, 他の項をuとする
         (Var(x), u) | (u, Var(x)) => (!is_subterm_of(x, u))
-            .then_some(HashMap::from([(x.clone(), Rc::new(u.clone()))]).into()),
-
+            .then_some(HashMap::from([(crate::subst::Var::Id(x.clone()), Rc::new(u.clone()))]).into()),
+            
         // s,tが関数
         (Fun(oid_f, args_f), Fun(oid_g, args_g)) => {
             // t≡f(t1,...,tn),s≡g(s1,...,sm)とする
@@ -62,11 +66,26 @@ impl Subst {
         let sigma_new = HashMap::new();
         let sig = sigma.0.iter().fold(sigma_new, |mut sig, (var, inner)| {
             // xi ∈ D(σ)
-            let cond1 = TermInner::Var(var.clone()).substitute(&sigma).as_ref()
-                != &TermInner::Var(var.clone());
+            let cond1 = match var {
+                Var::Id(vid) => {
+                    TermInner::Var(vid.clone()).substitute(&sigma).as_ref()
+                    != &TermInner::Var(vid.clone())
+                },
+                Var::Ruled(vid, rid, kind) => {
+                    TermInner::RuledVar(vid.clone(),*rid,kind.clone()).substitute(&sigma).as_ref()
+                    != &TermInner::RuledVar(vid.clone(),*rid,kind.clone())
+                }
+            };
             // xi !≡ τ[si]
             let v = inner.substitute(self);
-            let cond2 = v.as_ref() != &TermInner::Var(var.clone());
+            let cond2 = match var {
+                Var::Id(vid) => {
+                    v.as_ref() != &TermInner::Var(vid.clone())
+                },
+                Var::Ruled(vid, rid, kind) => {
+                    v.as_ref() != &TermInner::RuledVar(vid.clone(),*rid,kind.clone())
+                },
+            };
             (cond1 && cond2).then(|| {
                 sig.insert(var.clone(), v);
             });
@@ -110,7 +129,7 @@ impl From<Vec<(usize, VarId)>> for Subst {
         let mut map = HashMap::new();
         value
             .iter()
-            .map(|(var1, var2)| (VarId(*var1), Rc::new(TermInner::Var(var2.clone()))))
+            .map(|(var1, var2)| (Var::Id(VarId(*var1)), Rc::new(TermInner::Var(var2.clone()))))
             .for_each(|(k, v)| {
                 map.insert(k, v);
             });
@@ -118,7 +137,19 @@ impl From<Vec<(usize, VarId)>> for Subst {
         Subst(map)
     }
 }
+impl From<Vec<((usize, usize, RuleKind), VarId)>> for Subst {
+    fn from(value: Vec<((usize, usize, RuleKind), VarId)>) -> Self {
+        let mut map = HashMap::new();
+        value
+            .iter()
+            .map(|((vid, rid, kind), var2)| (Var::Ruled(VarId(*vid), *rid, kind.clone()), Rc::new(TermInner::Var(var2.clone()))))
+            .for_each(|(k, v)| {
+                map.insert(k, v);
+            });
 
+        Subst(map)
+    }
+}
 // impl std::ops::Index<Subst> for Subst {
 //     type Output = Subst;
 //     fn index<'a>(&'a self, index: Subst) -> &'a Self::Output {
@@ -134,6 +165,11 @@ fn is_subterm_of(_vid: &VarId, _target: &TermInner) -> bool {
     false
 }
 
+fn is_subterm_of2(_ruledvar: &TermInner, _target: &TermInner) -> bool {
+    // target.subterms().any(|t| t.term.as_ref() == self)
+    false
+}
+
 #[cfg(test)]
 mod test {
     use std::rc::Rc;
@@ -144,7 +180,7 @@ mod test {
         context_table::CtxtTable,
         id::{OperId, VarId},
         parser::term::terminner::oper::terminner_parser,
-        subst::Subst,
+        subst::{Subst, Var},
         symbol_table::SymbolTable,
         unify::unify,
     };
@@ -163,10 +199,10 @@ mod test {
 
         let mut subst1 = Subst::default();
         let inner1 = terminner_parser(&ctxts, &opers).parse("g!x1");
-        subst1.insert(VarId(0), Rc::new(inner1.unwrap().0));
+        subst1.insert(Var::Id(VarId(0)), Rc::new(inner1.unwrap().0));
         let mut subst2 = Subst::default();
         let inner2 = terminner_parser(&ctxts, &opers).parse("g!x2");
-        subst2.insert(VarId(1), Rc::new(inner2.unwrap().0));
+        subst2.insert(Var::Id(VarId(1)), Rc::new(inner2.unwrap().0));
         // let subst = subst1.compose(subst2);
         let subst = subst2.compose(&subst1);
         dbg!(subst);

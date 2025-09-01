@@ -1,29 +1,28 @@
 use std::{collections::HashMap, rc::Rc};
 
 use crate::{
-    id::VarId,
-    subterm::Position,
-    term::{Term, TermInner},
+    id::VarId, rule::{RuleId, RuleKind}, subterm::Position, term::{Term, TermInner}
 };
+use std::hash::Hash;
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum Var {
+    Id(VarId),
+    Ruled(VarId, RuleId, RuleKind),
+}
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Subst(pub HashMap<VarId, Rc<TermInner>>);
-// impl IntoIterator for &Subst {
-//     type Item = <HashMap<VarId, Rc<TermInner>> as IntoIterator>::Item;
-//     type IntoIter = <HashMap<VarId, Rc<TermInner>> as IntoIterator>::IntoIter;
-//     fn into_iter(self) -> Self::IntoIter {
-//         self.0.into_iter()
-//     }
-// }
+pub struct Subst(pub HashMap<Var, Rc<TermInner>>);
+
 impl Subst {
-    pub fn new(map: HashMap<VarId, Rc<TermInner>>) -> Self {
+    pub fn new(map: HashMap<Var, Rc<TermInner>>) -> Self {
         map.into()
     }
-    pub fn insert(&mut self, k: VarId, v: Rc<TermInner>) {
+    pub fn insert(&mut self, k: Var, v: Rc<TermInner>) {
         self.0.insert(k, v);
     }
 }
-impl Into<Subst> for HashMap<VarId, Rc<TermInner>> {
+impl Into<Subst> for HashMap<Var, Rc<TermInner>> {
     fn into(self) -> Subst {
         Subst(self)
     }
@@ -53,10 +52,12 @@ impl TermInner {
     }
 }
 
-pub fn substitute_inner(inner: Rc<TermInner>, var: &VarId, term: Rc<TermInner>) -> Rc<TermInner> {
-    match inner.as_ref() {
-        TermInner::Var(varid) if varid == var => term,
-        TermInner::Fun(oper_id, args) => Rc::new(TermInner::Fun(
+pub fn substitute_inner(inner: Rc<TermInner>, var: &Var, term: Rc<TermInner>) -> Rc<TermInner> {
+    match (inner.as_ref(), var) {
+        (TermInner::Var(vid), Var::Id(v)) if vid == v => term,
+        (TermInner::RuledVar(vid,rid,kind), Var::Ruled(v,r,k))
+            if vid == v && rid == r && kind == k => term,
+        (TermInner::Fun(oper_id, args), _) => Rc::new(TermInner::Fun(
             oper_id.clone(),
             args.iter()
                 .map(|arg| substitute_inner(arg.clone(), var, term.clone()))
@@ -120,7 +121,7 @@ mod test {
 
         use combine::EasyParser;
 
-        use crate::{id::VarId, subst::Subst};
+        use crate::{id::VarId, subst::{Subst, Var}};
 
         let opers = SymbolTable::<OperId>::new();
         opers.assign("f".to_string());
@@ -133,7 +134,7 @@ mod test {
 
         let mut subst = HashMap::new();
         let inner = terminner_parser(&ctxts, &opers).easy_parse("g!x1");
-        subst.insert(VarId(0), inner.unwrap().0.into());
+        subst.insert(Var::Id(VarId(0)), inner.unwrap().0.into());
 
         let r = t.unwrap().0.substitute(&Subst(subst));
         dbg!(&r);
@@ -159,7 +160,7 @@ fn test_substitute() {
 
     let mut substs = HashMap::new();
     let v = Rc::new(TermInner::Int(100));
-    substs.insert(VarId(0), v);
+    substs.insert(Var::Id(VarId(0)), v);
 
     let result = term.substitute(&substs.into());
     dbg!(result);
