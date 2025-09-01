@@ -6,7 +6,7 @@ use crate::{
 };
 type Link<T> = std::rc::Rc<T>;
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Clone, PartialOrd, Ord, Eq)]
 pub enum TermInner {
     Var(VarId),
     Fun(OperId, Vec<Link<TermInner>>),
@@ -26,7 +26,13 @@ impl std::fmt::Debug for TermInner {
             TermInner::Str(s) => write!(f, "Str{:?}", s),
             TermInner::Int(i) => write!(f, "Int{:?}", i),
 
-            TermInner::RuledVar(vid, rid, kind) => write!(f, "Var<{:?},{:?},{:?}>", vid.0, rid, kind),
+            TermInner::RuledVar(vid, rid, kind) => {
+                if kind == &RuleKind::NotSet {
+                    write!(f, "Var<{:?},{:?}>", vid.0, rid)
+                } else {
+                    write!(f, "Var<{:?},{:?}>(r{:?})", vid.0, kind, rid)
+                }                
+            },
 
             TermInner::Subst(varid, inner) => write!(f, "Subst[{:?}->{:?}]", varid, inner),
         }

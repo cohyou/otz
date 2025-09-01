@@ -3,12 +3,12 @@ use autoincrement::prelude::*;
 #[derive(AsyncIncremental, PartialEq, Eq, Clone, Default)]
 pub struct TypeId(pub usize);
 
-#[derive(AsyncIncremental, PartialEq, Eq, Clone)]
+#[derive(AsyncIncremental, PartialEq, Eq, Clone, PartialOrd, Ord)]
 pub struct OperId(pub usize);
 
 #[derive(Default, Hash, AsyncIncremental, PartialEq, Eq, Clone)]
 pub struct CtxtId(pub usize);
-#[derive(Hash, AsyncIncremental, PartialEq, Eq, Clone)]
+#[derive(Hash, AsyncIncremental, PartialEq, Eq, Clone, PartialOrd, Ord)]
 pub struct VarId(pub usize);
 
 impl std::fmt::Debug for TypeId {

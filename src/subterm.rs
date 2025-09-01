@@ -28,16 +28,17 @@ impl Term {
     }
 
     /// 位置で部分項を取得（見つからなければ None）
-    pub fn get_at(&self, _pos: &[usize]) -> Option<Rc<Term>> {
-        //     let mut t = self;
-        //     for &i in pos {
-        //         match t {
-        //             Term::Fun { args, .. } => t = args.get(i)?,
-        //             Term::Var(_) => return None,
-        //         }
-        //     }
-        //     Some(t)
-        unimplemented!()
+    pub fn get_at(&self, pos: &[usize]) -> Option<Rc<Term>> {
+        let mut t = &self.inner;
+        for &i in pos {
+            match t.as_ref() {
+                TermInner::Fun(_, args) => t = args.get(i)?,
+                TermInner::Var(_) => return None,
+                _ => return None,
+            }
+        }
+        Some(Rc::new(Term{context:self.context.clone(),inner:t.clone()}))
+        // unimplemented!()
     }
 
     // /// 後順（ボトムアップ）をざっくり：前順を全部集めて反転

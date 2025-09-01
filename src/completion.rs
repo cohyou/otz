@@ -1,13 +1,13 @@
 use std::{collections::HashMap, rc::Rc};
 
 use crate::{
-    context::Context, equation::Equation, id::VarId, rule::{Rule, RuleKind}, subst::{Subst, Var}, subterm::{Position, Subterm}, term::{Term, TermInner}, unify::unify
+    analyse::analyse, context::Context, equation::Equation, id::VarId, rule::{Rule, RuleKind}, subst::{Subst, Var}, subterm::{Position, Subterm}, term::{Term, TermInner}, unify::unify
 };
 
 pub fn complete(eqs: &Vec<Equation>) -> Vec<Rule> {
     let mut rules = eqs
         .iter()
-        .map(|eq| analyse(&eq.left, &eq.right))
+        .map(|eq| analyse(eq.context.clone(), &eq.left, &eq.right))
         .collect::<Vec<_>>();
     let mut critical_pairs = make_critical_pair_set(&rules);
 
@@ -17,7 +17,7 @@ pub fn complete(eqs: &Vec<Equation>) -> Vec<Rule> {
         let normal_p = cp.p_term().normalize(&rules);
         let normal_q = cp.q_term().normalize(&rules);
         if normal_p != normal_q {
-            let new_rule = analyse(&normal_p.inner, &normal_q.inner);
+            let new_rule = analyse(cp.context, &normal_p.inner, &normal_q.inner);
             rules.push(new_rule.clone());
             // α→βと既存rules内のrule毎の危険対の集合を作る
             let new_pairs = rules
@@ -28,10 +28,6 @@ pub fn complete(eqs: &Vec<Equation>) -> Vec<Rule> {
         }
     }
     rules
-}
-
-fn analyse(_left: &Rc<TermInner>, _right: &Rc<TermInner>) -> Rule {
-    unimplemented!()
 }
 
 struct CriticalPair {
@@ -69,16 +65,23 @@ fn prepare_rules(rules: &Vec<Rule>) -> Vec<Rule> {
     }).collect()
 }
 
-impl Term {
-    pub fn vars_ruled_term(&self, rule_id: usize, kind: RuleKind) -> Rc<TermInner> {
+impl Rule {
+    pub fn make_vars_ruled(&self, kind: RuleKind) -> Rule {
         let subst = HashMap::new();
         let subst = self.context.0.keys().fold(subst, |mut subst, v| {
-            let ruled_var = TermInner::RuledVar(v.clone(), rule_id, kind.clone());
-            let var = Var::Ruled(v.clone(), rule_id, kind.clone());
+            let var = Var::Id(v.clone());
+            let ruled_var = TermInner::RuledVar(v.clone(), self.id.unwrap(), kind.clone());
             subst.insert(var, Rc::new(ruled_var));
             subst
         });
-        self.substitute(&Subst(subst.clone())).inner
+        // dbg!(&subst);
+        
+        Rule {
+            id: self.id.clone(),
+            context: self.context.clone(),
+            before: self.before().substitute(&Subst(subst.clone())).inner,
+            after: self.after().substitute(&Subst(subst.clone())).inner,
+        }
     }
 }
 
@@ -93,8 +96,19 @@ fn make_critical_pair_set(rules: &Vec<Rule>) -> Vec<CriticalPair> {
             rules
                 .iter()
                 .flat_map(|rule2| {
-                    rule1
-                        .check_overlap::<(VarId, usize, RuleKind)>(rule2)
+                    let overlaps = if rule1.id == rule2.id {
+                        let r1 = rule1.make_vars_ruled(RuleKind::Set1);
+                        let r2 = rule2.make_vars_ruled(RuleKind::Set2);
+                        // dbg!(&r1, &r2);
+                        r1.check_overlap::<(VarId, usize, RuleKind)>(&r2)
+                    } else {                        
+                        let r1 = rule1.make_vars_ruled(RuleKind::NotSet);
+                        let r2 = rule2.make_vars_ruled(RuleKind::NotSet);
+                        dbg!(&r1, &r2);
+                        r1.check_overlap::<(VarId, usize, RuleKind)>(&r2)
+                        // rule1.check_overlap::<(VarId, usize, RuleKind)>(rule2)
+                    };
+                    overlaps
                         .iter()
                         .filter_map(Overlap::to_critical_pair)
                         .collect::<Vec<_>>()
@@ -143,7 +157,10 @@ impl Rule {
             .filter_map(|subterm: Subterm| {
                 let s1_sub = subterm.term;
                 // s1/uが変数なら対象外
-                let s1_is_not_var = !matches!(s1_sub.inner.as_ref(), TermInner::Var(_));
+                let s1_is_not_var = !(
+                    matches!(s1_sub.inner.as_ref(), TermInner::Var(_)) ||
+                    matches!(s1_sub.inner.as_ref(), TermInner::RuledVar(_,_,_))
+                );
                 // dbg!(&s1_sub.inner, s1_is_not_var);
                 // r1≡r2ならu≠ε(恒等写像=無意味な置換になってしまう)
                 let is_not_identity = !(is_same_rule && subterm.pos.is_empty());
@@ -151,15 +168,17 @@ impl Rule {
                 // 上記を前提とする
                 (s1_is_not_var && is_not_identity)
                     .then(|| {
-                        let (s, t) = if is_same_rule {
-                            (
-                                s1_sub.vars_ruled_term(self.id.unwrap(), RuleKind::Set1),
-                                s2.vars_ruled_term(from.id.unwrap(), RuleKind::Set2)
-                            )
-                        } else {
-                            (s1_sub.inner.clone(), s2.inner.clone())
-                        };
-                        unify(s, t).map(|theta| (subterm.pos, theta))
+                        // let (s, t) = if is_same_rule {
+                        //     (
+                        //         s1_sub.vars_ruled_term(self.id.unwrap(), RuleKind::Set1),
+                        //         s2.vars_ruled_term(from.id.unwrap(), RuleKind::Set2)
+                        //     )
+                        // } else {
+                        //     (s1_sub.inner.clone(), s2.inner.clone())
+                        // };
+                        let (s, t) = (s1_sub.inner.clone(), s2.inner.clone());
+                        dbg!(is_same_rule, &s, &t);
+                        unify(s, t).map(|theta| (subterm.pos, theta)).inspect(|r| {dbg!(r);})
                     })
                     .flatten()
             })
@@ -209,14 +228,88 @@ mod test {
     use combine::Parser;
 
     use crate::{
-        completion::{make_critical_pair_set, Overlap},
-        context_table::CtxtTable,
-        id::{OperId, TypeId},
-        parser::rule::rule_parser,
-        symbol_table::SymbolTable,
+        completion::{complete, make_critical_pair_set, Overlap}, context_table::CtxtTable, id::{OperId, TypeId}, parser::{equation::equation_parser, rule::rule_parser}, rule::RuleKind, symbol_table::SymbolTable
     };
 
     use rstest::*;
+
+    #[test]
+    fn test_complete() {
+        let types = SymbolTable::<TypeId>::new();
+        types.assign("Int".to_string());
+        let opers = SymbolTable::<OperId>::new();
+        opers.assign("plus".to_string());
+        opers.assign("minus".to_string());
+        let ctxts12 = CtxtTable::new();
+        ctxts12.assign_to_current("x".to_string());
+        let ctxts3 = CtxtTable::new();
+        ctxts3.assign_to_current("x".to_string());
+        ctxts3.assign_to_current("y".to_string());
+        ctxts3.assign_to_current("z".to_string());
+        // r1: 0+x = x
+        // r2: (-x)+x = 0
+        // r3: (x+y)+z = x+(y+z)
+        let input_rule1 = "x: Int | plus![0 x] = x";
+        let input_rule2 = "x: Int | plus![minus!x x] = 0";
+        let input_rule3 =
+            "x: Int y: Int z: Int | plus![plus![x y] z] = plus![x plus![y z]]";
+        let eq1 = equation_parser(&types, &ctxts12, &opers)
+            .parse(input_rule1)
+            .unwrap()
+            .0;
+        let eq2 = equation_parser(&types, &ctxts12, &opers)
+            .parse(input_rule2)
+            .unwrap()
+            .0;
+        let eq3 = equation_parser(&types, &ctxts3, &opers)
+            .parse(input_rule3)
+            .unwrap()
+            .0;
+        let rules = complete(&vec![eq1, eq2, eq3]);
+        dbg!(&rules);
+    }
+
+    #[test]
+    fn test_make_critical_pair_set() {
+        let types = SymbolTable::<TypeId>::new();
+        types.assign("Int".to_string());
+        let opers = SymbolTable::<OperId>::new();
+        opers.assign("plus".to_string());
+        opers.assign("minus".to_string());
+        let ctxts = CtxtTable::new();
+        ctxts.assign_to_current("x".to_string());
+        ctxts.assign_to_current("y".to_string());
+        ctxts.assign_to_current("z".to_string());
+
+        let input_rule1 = "x: Int y: Int z: Int | plus![plus![x y] z] -> plus![x plus![y z]]";
+        let mut rule1 = rule_parser(&types, &ctxts, &opers).parse(input_rule1).clone()
+            .unwrap()
+            .0;
+        rule1.id = Some(1);
+        let r = make_critical_pair_set(&vec![rule1]);
+        dbg!(&r);
+    }
+
+    #[test]
+    fn test_make_vars_ruled() {
+        let types = SymbolTable::<TypeId>::new();
+        types.assign("Int".to_string());
+        let opers = SymbolTable::<OperId>::new();
+        opers.assign("plus".to_string());
+        opers.assign("minus".to_string());
+        let ctxts = CtxtTable::new();
+        ctxts.assign_to_current("x".to_string());
+        ctxts.assign_to_current("y".to_string());
+        ctxts.assign_to_current("z".to_string());
+
+        let input_rule1 = "x: Int y: Int z: Int | plus![plus![x y] z] -> plus![x plus![y z]]";
+        let mut rule1 = rule_parser(&types, &ctxts, &opers).parse(input_rule1).clone()
+            .unwrap()
+            .0;
+        rule1.id = Some(1);
+        let t = rule1.make_vars_ruled(RuleKind::Set2);
+        dbg!(&t);
+    }
 
     #[rstest]
     #[case(
@@ -266,9 +359,13 @@ mod test {
     // #[case("x1: Int | plus![0 x1] -> x1", "x2: Int | plus![minus!x2 x2] -> 0")]
     // #[case("x1: Int | plus![0 x1] -> x1", "x3: Int y3: Int z3: Int | plus![plus![x3 y3] z3] -> plus![x3 plus![y3 z3]]")]
     // #[case("x3: Int y3: Int z3: Int | plus![plus![x3 y3] z3] -> plus![x3 plus![y3 z3]]", "x2: Int | plus![minus!x2 x2] -> 0")]
+    // #[case(
+    //     "x3: Int y3: Int z3: Int | plus![plus![x3 y3] z3] -> plus![x3 plus![y3 z3]]",
+    //     "x4: Int y4: Int z4: Int | plus![plus![x4 y4] z4] -> plus![x4 plus![y4 z4]]"
+    // )]
     #[case(
-        "x3: Int y3: Int z3: Int | plus![plus![x3 y3] z3] -> plus![x3 plus![y3 z3]]",
-        "x4: Int y4: Int z4: Int | plus![plus![x4 y4] z4] -> plus![x4 plus![y4 z4]]"
+        "x: Int y: Int z: Int | plus![plus![x y] z] -> plus![x plus![y z]]",
+        "x: Int y: Int z: Int | plus![plus![x y] z] -> plus![x plus![y z]]"
     )]
     fn test_check_overlap2(#[case] input_rule1: &str, #[case] input_rule2: &str) {
         use crate::{id::VarId, rule::RuleKind};
@@ -279,25 +376,30 @@ mod test {
         opers.assign("plus".to_string());
         opers.assign("minus".to_string());
         let ctxts = CtxtTable::new();
-        ctxts.assign_to_current("x1".to_string());
-        ctxts.assign_to_current("x2".to_string());
-        ctxts.assign_to_current("x3".to_string());
-        ctxts.assign_to_current("y3".to_string());
-        ctxts.assign_to_current("z3".to_string());
-        ctxts.assign_to_current("x4".to_string());
-        ctxts.assign_to_current("y4".to_string());
-        ctxts.assign_to_current("z4".to_string());
+        ctxts.assign_to_current("x".to_string());
+        ctxts.assign_to_current("y".to_string());
+        ctxts.assign_to_current("z".to_string());
+        // ctxts.assign_to_current("x1".to_string());
+        // ctxts.assign_to_current("x2".to_string());
+        // ctxts.assign_to_current("x3".to_string());
+        // ctxts.assign_to_current("y3".to_string());
+        // ctxts.assign_to_current("z3".to_string());
+        // ctxts.assign_to_current("x4".to_string());
+        // ctxts.assign_to_current("y4".to_string());
+        // ctxts.assign_to_current("z4".to_string());
 
-        let rule1 = rule_parser(&types, &ctxts, &opers).parse(input_rule1);
-        let rule2 = rule_parser(&types, &ctxts, &opers).parse(input_rule2);
-        dbg!(&rule1);
-        dbg!(&rule2);
-        let overlap1 = rule1
-            .clone()
+        let mut rule1 = rule_parser(&types, &ctxts, &opers).parse(input_rule1).clone()
             .unwrap()
-            .0
-            .check_overlap::<(VarId, usize, RuleKind)>(&rule2.clone().unwrap().0);
-        let overlap2 = rule2.unwrap().0.check_overlap::<(VarId, usize, RuleKind)>(&rule1.unwrap().0);
+            .0;
+        let mut rule2 = rule_parser(&types, &ctxts, &opers).parse(input_rule2).clone()
+            .unwrap()
+            .0;
+        rule1.id = Some(1);
+        rule2.id = Some(1);
+        // dbg!(&rule1);
+        // dbg!(&rule2);
+        let overlap1 = rule1.check_overlap::<(VarId, usize, RuleKind)>(&rule2.clone());
+        let overlap2 = rule2.check_overlap::<(VarId, usize, RuleKind)>(&rule1);
         dbg!(&overlap1);
         dbg!(&overlap2);
         let critical_pairs1 = overlap1
@@ -313,7 +415,7 @@ mod test {
     }
 
     #[test]
-    fn test_complete() {
+    fn test_make_critical_pair_set2() {
         let types = SymbolTable::<TypeId>::new();
         types.assign("Int".to_string());
         let opers = SymbolTable::<OperId>::new();
