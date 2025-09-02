@@ -50,7 +50,7 @@ impl CtxtTable {
             .borrow()
             .get(&current_ctxt_id)
             .and_then(|table| table.get(name))
-            .expect(format!("Variable '{}' not found in current context", name).as_str())
+            .expect(format!("Variable '{}' not found in current context {:?}", name, &self).as_str())
     }
 
     pub fn complete(&self) {
