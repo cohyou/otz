@@ -1,8 +1,9 @@
-use std::rc::Rc;
+use std::{collections::HashMap, rc::Rc};
 
 use crate::{
     context::Context,
-    id::{OperId, VarId}, rule::{RuleId, RuleKind},
+    id::{OperId, Symbol, VarId},
+    rule::{RuleId, RuleKind}, symbol_table::Names,
 };
 type Link<T> = std::rc::Rc<T>;
 
@@ -31,8 +32,8 @@ impl std::fmt::Debug for TermInner {
                     write!(f, "Var<{:?},{:?}>", vid.0, rid)
                 } else {
                     write!(f, "Var<{:?},{:?}>(r{:?})", vid.0, kind, rid)
-                }                
-            },
+                }
+            }
 
             TermInner::Subst(varid, inner) => write!(f, "Subst[{:?}->{:?}]", varid, inner),
         }
@@ -41,11 +42,73 @@ impl std::fmt::Debug for TermInner {
 #[derive(Clone, PartialEq)]
 pub struct Term {
     pub context: Context,
+    pub names: Names,
     pub inner: Rc<TermInner>,
 }
 
 impl std::fmt::Debug for Term {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self.inner)
+    }
+}
+
+impl std::fmt::Display for Term {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.fmt_inner(f, &self.inner)
+    }
+}
+
+impl Term {
+    fn fmt_inner(
+        &self,
+        f: &mut std::fmt::Formatter<'_>,
+        inner: &Rc<TermInner>,
+    ) -> std::fmt::Result {
+        use TermInner::*;
+        match inner.as_ref() {
+            Var(vid) => {
+                let v = self
+                    .names
+                    .iter()
+                    .find(|(_, sym)| sym == &&Symbol::Var(vid.clone()));
+                if let Some((nm, _)) = v {
+                    write!(f, "{}", nm)
+                } else {
+                    write!(f, "v{:?}", vid)
+                }
+            }
+            Fun(operid, args) => {
+                let v = self
+                    .names
+                    .iter()
+                    .find(|(_, sym)| sym == &&Symbol::Fun(operid.clone()));
+                if let Some((nm, _)) = v {
+                    let _ = write!(f, "{}", nm);
+                    match args.len() {
+                        0 => {
+                            let _ = write!(f, ";");
+                        }
+                        1 => {
+                            let _ = write!(f, "!");
+                            let _ = self.fmt_inner(f, &args[0]);
+                        }
+                        _ => {
+                            let _ = write!(f, "![");
+                            args.iter().enumerate().for_each(|(i, arg)| {
+                                if i > 0 {
+                                    let _ = write!(f, " ");
+                                }
+                                let _ = self.fmt_inner(f, arg);
+                            });
+                            let _ = write!(f, "]");
+                        }
+                    };
+                    write!(f, "")
+                } else {
+                    write!(f, "f{:?}", operid.0)
+                }
+            }
+            _ => unimplemented!(),
+        }
     }
 }

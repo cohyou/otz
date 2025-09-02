@@ -1,5 +1,6 @@
 extern crate combine;
 
+mod analyse;
 mod completion;
 mod context;
 mod equation;
@@ -14,7 +15,7 @@ mod term;
 mod theory;
 mod r#type;
 mod unify;
-mod analyse;
+pub mod util;
 
 pub mod context_table;
 pub mod eval;

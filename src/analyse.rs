@@ -32,20 +32,18 @@ fn analyse_inner(t1: &Rc<TermInner>, t2: &Rc<TermInner>) -> bool {
     // 同じ関数なら、1つ目の引数同士を比較する
     match t1.size().cmp(&t2.size()) {
         Ordering::Greater => true, // left > right
-        Ordering::Less => false, // left < right
+        Ordering::Less => false,   // left < right
         Ordering::Equal => {
             match (t1.as_ref(), t2.as_ref()) {
                 (TermInner::Fun(f, args_f), TermInner::Fun(g, args_g)) => {
                     match f.cmp(g) {
                         Ordering::Greater => true, // f > g
-                        Ordering::Less => false, // f < g
-                        Ordering::Equal => {
-                            analyse_inner(&args_f[0], &args_g[0])
-                        }
+                        Ordering::Less => false,   // f < g
+                        Ordering::Equal => analyse_inner(&args_f[0], &args_g[0]),
                     }
                 }
                 _ => unimplemented!(),
-            }            
+            }
         }
     }
 }
@@ -54,12 +52,10 @@ impl TermInner {
     fn size(&self) -> usize {
         // 含まれる関数の数
         match &self {
-            &TermInner::Var(_) | TermInner::RuledVar(_,_,_) => 0,
+            &TermInner::Var(_) | TermInner::RuledVar(_, _, _) => 0,
             &TermInner::Int(_) | TermInner::Str(_) => 1,
-            &TermInner::Fun(_, args) => {
-                1 + args.iter().map(|inner|inner.size()).sum::<usize>()
-            },
-            &TermInner::Subst(_, inner) => inner.size(),            
+            &TermInner::Fun(_, args) => 1 + args.iter().map(|inner| inner.size()).sum::<usize>(),
+            &TermInner::Subst(_, inner) => inner.size(),
         }
     }
 }
@@ -74,9 +70,9 @@ impl TermInner {
 //         (TermInner::Var(_), _) => false,
 //         (TermInner::Fun(f1, args1), TermInner::Fun(f2, args2)) => {
 //             (
-//                 f1 == f2 && 
-//                 lex_gr_eq(lpo_gr_eq, args1.clone(), args2.clone()) && 
-//                 args2.iter().all(|arg2| lpo_gr_eq(t1.clone(), arg2.clone()) ) 
+//                 f1 == f2 &&
+//                 lex_gr_eq(lpo_gr_eq, args1.clone(), args2.clone()) &&
+//                 args2.iter().all(|arg2| lpo_gr_eq(t1.clone(), arg2.clone()) )
 //             ) ||
 //             (
 //                 f1 > f2 &&
@@ -111,7 +107,13 @@ mod test {
     use combine::Parser;
     use rstest::*;
 
-    use crate::{analyse::analyse, context_table::CtxtTable, id::{OperId, TypeId}, parser::equation::equation_parser, symbol_table::SymbolTable};
+    use crate::{
+        analyse::analyse,
+        context_table::CtxtTable,
+        id::{OperId, TypeId},
+        parser::equation::equation_parser,
+        symbol_table::SymbolTable,
+    };
 
     #[rstest]
     #[case("x: Int | plus![0 x] = x")]
@@ -125,8 +127,11 @@ mod test {
         opers.assign("minus".to_string());
         let ctxts = CtxtTable::new();
         ctxts.assign_to_current("x".to_string());
-        
-        let eq = equation_parser(&types, &ctxts, &opers).parse(input).unwrap().0;
+
+        let eq = equation_parser(&types, &ctxts, &opers)
+            .parse(input)
+            .unwrap()
+            .0;
         dbg!(&eq);
         let rule = analyse(eq.context, &eq.left, &eq.right);
         dbg!(&rule);

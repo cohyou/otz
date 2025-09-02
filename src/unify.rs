@@ -1,15 +1,27 @@
 use std::{collections::HashMap, rc::Rc};
 
-use crate::{id::VarId, rule::RuleKind, subst::{Subst, Var}, term::TermInner};
+use crate::{
+    id::VarId,
+    rule::RuleKind,
+    subst::{Subst, Var},
+    term::TermInner,
+};
 
 /// TODO: s/tのcontextの扱いを確認する
 pub fn unify(s: Rc<TermInner>, t: Rc<TermInner>) -> Option<Subst> {
-    use TermInner::{Fun, Int, Str, Var, RuledVar};
+    use TermInner::{Fun, Int, RuledVar, Str, Var};
 
     match (s.as_ref(), t.as_ref()) {
-        (rv1 @ RuledVar(_,_,_), rv2 @ RuledVar(_,_,_)) if rv1 == rv2 => Some(Subst::default()),
-        (rv1 @ RuledVar(vid,rid,kind), u) | (u, rv1 @ RuledVar(vid,rid,kind)) => (!is_subterm_of2(rv1, u))
-            .then_some(HashMap::from([(crate::subst::Var::Ruled(vid.clone(),*rid,kind.clone()), Rc::new(u.clone()))]).into()),
+        (rv1 @ RuledVar(_, _, _), rv2 @ RuledVar(_, _, _)) if rv1 == rv2 => Some(Subst::default()),
+        (rv1 @ RuledVar(vid, rid, kind), u) | (u, rv1 @ RuledVar(vid, rid, kind)) => {
+            (!is_subterm_of2(rv1, u)).then_some(
+                HashMap::from([(
+                    crate::subst::Var::Ruled(vid.clone(), *rid, kind.clone()),
+                    Rc::new(u.clone()),
+                )])
+                .into(),
+            )
+        }
 
         // 全く同じ内容なら
         (Var(x), Var(y)) if x == y => Some(Subst::default()),
@@ -18,9 +30,10 @@ pub fn unify(s: Rc<TermInner>, t: Rc<TermInner>) -> Option<Subst> {
 
         // s,tのどちらかが変数
         // 変数をx, 他の項をuとする
-        (Var(x), u) | (u, Var(x)) => (!is_subterm_of(x, u))
-            .then_some(HashMap::from([(crate::subst::Var::Id(x.clone()), Rc::new(u.clone()))]).into()),
-            
+        (Var(x), u) | (u, Var(x)) => (!is_subterm_of(x, u)).then_some(
+            HashMap::from([(crate::subst::Var::Id(x.clone()), Rc::new(u.clone()))]).into(),
+        ),
+
         // s,tが関数
         (Fun(oid_f, args_f), Fun(oid_g, args_g)) => {
             // t≡f(t1,...,tn),s≡g(s1,...,sm)とする
@@ -69,22 +82,22 @@ impl Subst {
             let cond1 = match var {
                 Var::Id(vid) => {
                     TermInner::Var(vid.clone()).substitute(&sigma).as_ref()
-                    != &TermInner::Var(vid.clone())
-                },
+                        != &TermInner::Var(vid.clone())
+                }
                 Var::Ruled(vid, rid, kind) => {
-                    TermInner::RuledVar(vid.clone(),*rid,kind.clone()).substitute(&sigma).as_ref()
-                    != &TermInner::RuledVar(vid.clone(),*rid,kind.clone())
+                    TermInner::RuledVar(vid.clone(), *rid, kind.clone())
+                        .substitute(&sigma)
+                        .as_ref()
+                        != &TermInner::RuledVar(vid.clone(), *rid, kind.clone())
                 }
             };
             // xi !≡ τ[si]
             let v = inner.substitute(self);
             let cond2 = match var {
-                Var::Id(vid) => {
-                    v.as_ref() != &TermInner::Var(vid.clone())
-                },
+                Var::Id(vid) => v.as_ref() != &TermInner::Var(vid.clone()),
                 Var::Ruled(vid, rid, kind) => {
-                    v.as_ref() != &TermInner::RuledVar(vid.clone(),*rid,kind.clone())
-                },
+                    v.as_ref() != &TermInner::RuledVar(vid.clone(), *rid, kind.clone())
+                }
             };
             (cond1 && cond2).then(|| {
                 sig.insert(var.clone(), v);
@@ -142,7 +155,12 @@ impl From<Vec<((usize, usize, RuleKind), VarId)>> for Subst {
         let mut map = HashMap::new();
         value
             .iter()
-            .map(|((vid, rid, kind), var2)| (Var::Ruled(VarId(*vid), *rid, kind.clone()), Rc::new(TermInner::Var(var2.clone()))))
+            .map(|((vid, rid, kind), var2)| {
+                (
+                    Var::Ruled(VarId(*vid), *rid, kind.clone()),
+                    Rc::new(TermInner::Var(var2.clone())),
+                )
+            })
             .for_each(|(k, v)| {
                 map.insert(k, v);
             });

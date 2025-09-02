@@ -1,7 +1,10 @@
 use std::{collections::HashMap, rc::Rc};
 
 use crate::{
-    id::VarId, rule::{RuleId, RuleKind}, subterm::Position, term::{Term, TermInner}
+    id::VarId,
+    rule::{RuleId, RuleKind},
+    subterm::Position,
+    term::{Term, TermInner},
 };
 use std::hash::Hash;
 
@@ -37,6 +40,7 @@ impl Term {
     pub fn substitute(&self, subst: &Subst) -> Term {
         Term {
             context: self.context.clone(),
+            names: self.names.clone(),
             inner: self.inner.substitute(subst),
         }
     }
@@ -55,8 +59,11 @@ impl TermInner {
 pub fn substitute_inner(inner: Rc<TermInner>, var: &Var, term: Rc<TermInner>) -> Rc<TermInner> {
     match (inner.as_ref(), var) {
         (TermInner::Var(vid), Var::Id(v)) if vid == v => term,
-        (TermInner::RuledVar(vid,rid,kind), Var::Ruled(v,r,k))
-            if vid == v && rid == r && kind == k => term,
+        (TermInner::RuledVar(vid, rid, kind), Var::Ruled(v, r, k))
+            if vid == v && rid == r && kind == k =>
+        {
+            term
+        }
         (TermInner::Fun(oper_id, args), _) => Rc::new(TermInner::Fun(
             oper_id.clone(),
             args.iter()
@@ -72,6 +79,7 @@ impl Term {
     pub fn replace(&self, at: &Position, to: Rc<Term>) -> Rc<Term> {
         let applied = Term {
             context: self.context.clone(),
+            names: self.names.clone(),
             inner: replace_term_inner(self.inner.clone(), &at, to, vec![]),
         };
         Rc::new(applied)
@@ -121,7 +129,10 @@ mod test {
 
         use combine::EasyParser;
 
-        use crate::{id::VarId, subst::{Subst, Var}};
+        use crate::{
+            id::VarId,
+            subst::{Subst, Var},
+        };
 
         let opers = SymbolTable::<OperId>::new();
         opers.assign("f".to_string());
@@ -139,29 +150,4 @@ mod test {
         let r = t.unwrap().0.substitute(&Subst(subst));
         dbg!(&r);
     }
-}
-
-#[test]
-fn test_substitute() {
-    use crate::context::Context;
-    use crate::id::TypeId;
-    use crate::r#type::Type;
-    use crate::term::Term;
-    use std::rc::Rc;
-
-    let mut context = HashMap::new();
-    context.insert(VarId(0), Type::Unary(TypeId(0)));
-    let context = Context(context);
-    let inner = TermInner::Var(VarId(0));
-    let term = Term {
-        context,
-        inner: Rc::new(inner),
-    };
-
-    let mut substs = HashMap::new();
-    let v = Rc::new(TermInner::Int(100));
-    substs.insert(Var::Id(VarId(0)), v);
-
-    let result = term.substitute(&substs.into());
-    dbg!(result);
 }

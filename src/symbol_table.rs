@@ -4,7 +4,11 @@ use std::collections::HashMap;
 use autoincrement::AsyncIncrement;
 use autoincrement::AsyncIncremental;
 
-// #[derive(Clone)]
+use crate::id::OperId;
+use crate::id::Symbol;
+
+pub type Names = HashMap<String, Symbol>;
+
 pub struct SymbolTable<Id: AsyncIncremental> {
     pub table: RefCell<HashMap<String, Id>>,
     generator: AsyncIncrement<Id>,
@@ -48,5 +52,15 @@ impl<Id: AsyncIncremental + Clone> SymbolTable<Id> {
 
     pub fn get(&self, name: &str) -> Option<Id> {
         self.table.borrow().get(name).cloned()
+    }
+}
+
+impl SymbolTable<OperId> {
+    pub fn current_table(&self) -> HashMap<String, Symbol> {
+        let names = HashMap::new();
+        self.table.borrow().iter().fold(names, |mut table, (k, v)| {
+            table.insert(k.clone(), Symbol::Fun(v.clone()));
+            table
+        })
     }
 }

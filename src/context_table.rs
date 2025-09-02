@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use autoincrement::AsyncIncrement;
 use autoincrement::AsyncIncremental;
 
-// use crate::context::Ctxt;
+use crate::id::Symbol;
 use crate::id::{CtxtId, VarId};
 use crate::symbol_table::SymbolTable;
 
@@ -50,10 +50,33 @@ impl CtxtTable {
             .borrow()
             .get(&current_ctxt_id)
             .and_then(|table| table.get(name))
-            .expect(format!("Variable '{}' not found in current context {:?}", name, &self).as_str())
+            .expect(
+                format!(
+                    "Variable '{}' not found in current context {:?}",
+                    name, &self
+                )
+                .as_str(),
+            )
     }
 
     pub fn complete(&self) {
         self.generator.pull();
+    }
+
+    pub fn current_var_table(&self) -> HashMap<String, Symbol> {
+        let current_ctxt_id = self.generator.current();
+        // dbg!(&current_ctxt_id, &self.vars);
+        let mut var_names = HashMap::new();
+        self.vars
+            .borrow()
+            .get(&current_ctxt_id)
+            .expect(format!("symbol table {:?} not found", current_ctxt_id).as_str())
+            .table
+            .borrow()
+            .iter()
+            .for_each(|(k, v)| {
+                var_names.insert(k.clone(), Symbol::Var(v.clone()));
+            });
+        var_names
     }
 }

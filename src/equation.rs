@@ -23,12 +23,14 @@ impl Equation {
     pub fn left_term(&self) -> Term {
         Term {
             context: self.context.clone(),
+            names: unimplemented!(),
             inner: self.left.clone(),
         }
     }
     pub fn right_term(&self) -> Term {
         Term {
             context: self.context.clone(),
+            names: unimplemented!(),
             inner: self.right.clone(),
         }
     }

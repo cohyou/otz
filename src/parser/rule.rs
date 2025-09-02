@@ -21,7 +21,7 @@ pub fn rule_parser<'a, Input>(
 where
     Input: Stream<Token = char> + 'a,
 {
-    let context_parser = context_parser::<Input>(ctxts, types);
+    let context_parser = context_parser::<Input>(types, ctxts);
     let left_parser = terminner_parser(ctxts, opers);
     let right_parser = terminner_parser(ctxts, opers);
 

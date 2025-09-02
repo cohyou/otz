@@ -1,7 +1,7 @@
 use std::{collections::HashMap, rc::Rc};
 
 use crate::{
-    analyse::analyse, context::Context, equation::Equation, id::VarId, rule::{Rule, RuleKind}, subst::{Subst, Var}, subterm::{Position, Subterm}, term::{Term, TermInner}, unify::unify
+    analyse::analyse, context::Context, equation::Equation, id::VarId, rule::{Rule, RuleKind}, subst::{Subst, Var}, subterm::{Position, Subterm}, symbol_table::Names, term::{Term, TermInner}, unify::unify
 };
 
 pub fn complete(eqs: &Vec<Equation>) -> Vec<Rule> {
@@ -32,6 +32,7 @@ pub fn complete(eqs: &Vec<Equation>) -> Vec<Rule> {
 
 struct CriticalPair {
     context: Context,
+    names: Names,
     p: Rc<TermInner>,
     q: Rc<TermInner>,
 }
@@ -39,13 +40,15 @@ struct CriticalPair {
 impl CriticalPair {
     pub fn p_term(&self) -> Rc<Term> {
         Rc::new(Term {
-            context: self.context.clone(), 
+            context: self.context.clone(),
+            names: self.names.clone(),
             inner: self.p.clone(),
         })
     }
     pub fn q_term(&self) -> Rc<Term> {
         Rc::new(Term {
-            context: self.context.clone(), 
+            context: self.context.clone(),
+            names: self.names.clone(),
             inner: self.q.clone(),
         })
     }
@@ -58,11 +61,15 @@ impl std::fmt::Debug for CriticalPair {
 }
 
 fn prepare_rules(rules: &Vec<Rule>) -> Vec<Rule> {
-    rules.iter().enumerate().map(|(idx, rule)| {
-        let mut r = rule.clone();
-        r.id = Some(idx);
-        r
-    }).collect()
+    rules
+        .iter()
+        .enumerate()
+        .map(|(idx, rule)| {
+            let mut r = rule.clone();
+            r.id = Some(idx);
+            r
+        })
+        .collect()
 }
 
 impl Rule {
@@ -75,10 +82,11 @@ impl Rule {
             subst
         });
         // dbg!(&subst);
-        
+
         Rule {
             id: self.id.clone(),
             context: self.context.clone(),
+            names: self.names.clone(),
             before: self.before().substitute(&Subst(subst.clone())).inner,
             after: self.after().substitute(&Subst(subst.clone())).inner,
         }
@@ -101,7 +109,7 @@ fn make_critical_pair_set(rules: &Vec<Rule>) -> Vec<CriticalPair> {
                         let r2 = rule2.make_vars_ruled(RuleKind::Set2);
                         // dbg!(&r1, &r2);
                         r1.check_overlap::<(VarId, usize, RuleKind)>(&r2)
-                    } else {                        
+                    } else {
                         let r1 = rule1.make_vars_ruled(RuleKind::NotSet);
                         let r2 = rule2.make_vars_ruled(RuleKind::NotSet);
                         dbg!(&r1, &r2);
@@ -130,6 +138,7 @@ fn find_critical_pairs(rule1: &Rule, rule2: &Rule) -> Vec<CriticalPair> {
 #[derive(Debug)]
 struct Overlap {
     pub context: Context,
+    pub names: Names,
     pub overlapper: Rule, // 重なる側
     pub overlappee: Rule, // 重なられる側
     pub pos: Position,
@@ -143,7 +152,7 @@ impl Rule {
     /// [s1/uが変数ではない and θ(s1/u) ≡ θs2]
     /// このθは、s1/uとs2の単一化代入である。
     /// ただし、r1とr2が同一の書き換え規則である（これをr1≡r2と書く）ときには u≠ε とする。
-    fn check_overlap<T:Eq + std::hash::Hash>(&self, from: &Rule) -> Vec<Overlap> {
+    fn check_overlap<T: Eq + std::hash::Hash>(&self, from: &Rule) -> Vec<Overlap> {
         // fromがselfに重なるかだけを調べる、逆は行わない
         let s1 = self.before().clone();
         let s2 = from.before().clone();
@@ -157,10 +166,8 @@ impl Rule {
             .filter_map(|subterm: Subterm| {
                 let s1_sub = subterm.term;
                 // s1/uが変数なら対象外
-                let s1_is_not_var = !(
-                    matches!(s1_sub.inner.as_ref(), TermInner::Var(_)) ||
-                    matches!(s1_sub.inner.as_ref(), TermInner::RuledVar(_,_,_))
-                );
+                let s1_is_not_var = !(matches!(s1_sub.inner.as_ref(), TermInner::Var(_))
+                    || matches!(s1_sub.inner.as_ref(), TermInner::RuledVar(_, _, _)));
                 // dbg!(&s1_sub.inner, s1_is_not_var);
                 // r1≡r2ならu≠ε(恒等写像=無意味な置換になってしまう)
                 let is_not_identity = !(is_same_rule && subterm.pos.is_empty());
@@ -178,12 +185,15 @@ impl Rule {
                         // };
                         let (s, t) = (s1_sub.inner.clone(), s2.inner.clone());
                         dbg!(is_same_rule, &s, &t);
-                        unify(s, t).map(|theta| (subterm.pos, theta)).inspect(|r| {dbg!(r);})
+                        unify(s, t).map(|theta| (subterm.pos, theta)).inspect(|r| {
+                            dbg!(r);
+                        })
                     })
                     .flatten()
             })
             .map(|(pos, theta)| Overlap {
                 context: self.context.clone(),
+                names: self.names.clone(),
                 overlapper: from.clone(),
                 overlappee: self.clone(),
                 pos: pos,
@@ -213,13 +223,12 @@ impl Overlap {
         let right = Rc::new(t1.substitute(&self.subst));
 
         // 代入の結果が同一の場合は危険対とは見做さない
-        (left != right).then_some(
-            CriticalPair {
-                context: self.context.clone(),
-                p: left.inner.clone(),
-                q: right.inner.clone(),
-            }
-        )
+        (left != right).then_some(CriticalPair {
+            context: self.context.clone(),
+            names: self.names.clone(),
+            p: left.inner.clone(),
+            q: right.inner.clone(),
+        })
     }
 }
 
@@ -228,7 +237,12 @@ mod test {
     use combine::Parser;
 
     use crate::{
-        completion::{complete, make_critical_pair_set, Overlap}, context_table::CtxtTable, id::{OperId, TypeId}, parser::{equation::equation_parser, rule::rule_parser}, rule::RuleKind, symbol_table::SymbolTable
+        completion::{complete, make_critical_pair_set, Overlap},
+        context_table::CtxtTable,
+        id::{OperId, TypeId},
+        parser::{equation::equation_parser, rule::rule_parser},
+        rule::RuleKind,
+        symbol_table::SymbolTable,
     };
 
     use rstest::*;
@@ -251,8 +265,7 @@ mod test {
         // r3: (x+y)+z = x+(y+z)
         let input_rule1 = "x: Int | plus![0 x] = x";
         let input_rule2 = "x: Int | plus![minus!x x] = 0";
-        let input_rule3 =
-            "x: Int y: Int z: Int | plus![plus![x y] z] = plus![x plus![y z]]";
+        let input_rule3 = "x: Int y: Int z: Int | plus![plus![x y] z] = plus![x plus![y z]]";
         let eq1 = equation_parser(&types, &ctxts12, &opers)
             .parse(input_rule1)
             .unwrap()
@@ -282,7 +295,9 @@ mod test {
         ctxts.assign_to_current("z".to_string());
 
         let input_rule1 = "x: Int y: Int z: Int | plus![plus![x y] z] -> plus![x plus![y z]]";
-        let mut rule1 = rule_parser(&types, &ctxts, &opers).parse(input_rule1).clone()
+        let mut rule1 = rule_parser(&types, &ctxts, &opers)
+            .parse(input_rule1)
+            .clone()
             .unwrap()
             .0;
         rule1.id = Some(1);
@@ -303,7 +318,9 @@ mod test {
         ctxts.assign_to_current("z".to_string());
 
         let input_rule1 = "x: Int y: Int z: Int | plus![plus![x y] z] -> plus![x plus![y z]]";
-        let mut rule1 = rule_parser(&types, &ctxts, &opers).parse(input_rule1).clone()
+        let mut rule1 = rule_parser(&types, &ctxts, &opers)
+            .parse(input_rule1)
+            .clone()
             .unwrap()
             .0;
         rule1.id = Some(1);
@@ -340,7 +357,10 @@ mod test {
             .unwrap()
             .0
             .check_overlap::<(VarId, usize, RuleKind)>(&rule2.clone().unwrap().0);
-        let overlap2 = rule2.unwrap().0.check_overlap::<(VarId, usize, RuleKind)>(&rule1.unwrap().0);
+        let overlap2 = rule2
+            .unwrap()
+            .0
+            .check_overlap::<(VarId, usize, RuleKind)>(&rule1.unwrap().0);
         dbg!(&overlap1);
         dbg!(&overlap2);
         let critical_pairs1 = overlap1
@@ -388,10 +408,14 @@ mod test {
         // ctxts.assign_to_current("y4".to_string());
         // ctxts.assign_to_current("z4".to_string());
 
-        let mut rule1 = rule_parser(&types, &ctxts, &opers).parse(input_rule1).clone()
+        let mut rule1 = rule_parser(&types, &ctxts, &opers)
+            .parse(input_rule1)
+            .clone()
             .unwrap()
             .0;
-        let mut rule2 = rule_parser(&types, &ctxts, &opers).parse(input_rule2).clone()
+        let mut rule2 = rule_parser(&types, &ctxts, &opers)
+            .parse(input_rule2)
+            .clone()
             .unwrap()
             .0;
         rule1.id = Some(1);
@@ -432,8 +456,7 @@ mod test {
         // r3: (x+y)+z -> x+(y+z)
         let input_rule1 = "x: Int | plus![0 x] -> x";
         let input_rule2 = "x: Int | plus![minus!x x] -> 0";
-        let input_rule3 =
-            "x: Int y: Int z: Int | plus![plus![x y] z] -> plus![x plus![y z]]";
+        let input_rule3 = "x: Int y: Int z: Int | plus![plus![x y] z] -> plus![x plus![y z]]";
         let rule1 = rule_parser(&types, &ctxts12, &opers)
             .parse(input_rule1)
             .unwrap()

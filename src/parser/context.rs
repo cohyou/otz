@@ -12,8 +12,8 @@ use crate::parser::variable::parse_variable;
 use crate::symbol_table::SymbolTable;
 
 pub fn context_parser<'a, Input>(
-    ctxts: &'a CtxtTable,
     types: &'a SymbolTable<TypeId>,
+    ctxts: &'a CtxtTable,
 ) -> impl Parser<Input, Output = Context> + 'a
 where
     Input: Stream<Token = char> + 'a,
@@ -39,7 +39,7 @@ fn test_parse_context() {
     types.insert("Bool".to_string(), TypeId(2));
     types.insert("Int".to_string(), TypeId(3));
 
-    let r = context_parser(&ctxts, &types).easy_parse(ctxt_example);
+    let r = context_parser(&types, &ctxts).easy_parse(ctxt_example);
     dbg!(&ctxts);
     dbg!(&types);
     dbg!(&r);

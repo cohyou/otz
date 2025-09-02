@@ -37,8 +37,11 @@ impl Term {
                 _ => return None,
             }
         }
-        Some(Rc::new(Term{context:self.context.clone(),inner:t.clone()}))
-        // unimplemented!()
+        Some(Rc::new(Term {
+            context: self.context.clone(),
+            names: self.names.clone(),
+            inner: t.clone(),
+        }))
     }
 
     // /// 後順（ボトムアップ）をざっくり：前順を全部集めて反転
@@ -68,6 +71,7 @@ impl<'a> Iterator for Subterms {
                 let t = current.clone().term;
                 let child_term = Term {
                     context: t.clone().context.clone(),
+                    names: t.clone().names.clone(),
                     inner: child.clone(),
                 };
                 self.stack.push(Subterm {
@@ -84,41 +88,24 @@ impl<'a> Iterator for Subterms {
 
 #[cfg(test)]
 mod test {
-    use crate::r#type::Type;
+    use crate::parser::term::term_parser;
+    use crate::util::{opers, types};
     use crate::{
-        context::Context,
         context_table::CtxtTable,
-        id::{OperId, TypeId, VarId},
-        parser::term::terminner::terminner_parser_,
         subterm::Position,
-        symbol_table::SymbolTable,
-        term::Term,
     };
-    use std::{collections::HashMap, rc::Rc};
 
     #[test]
     fn test_subterms1() {
         use crate::combine::EasyParser;
 
-        let opers = SymbolTable::<OperId>::new();
-        opers.assign("f".to_string());
-        let ctxts = CtxtTable::new();
-        ctxts.assign_to_current("a".to_string());
+        let input = "a: Int | f![f!a a f;]";
 
-        // let input = "f![f![a]]";
-        let input = "f![f!a a f;]";
-        let mut parser = terminner_parser_(&ctxts, &opers);
+        let types = types(vec!["Int"]);
+        let opers = opers(vec!["f"]);        
+        let ctxts = CtxtTable::new();        
+        let term = term_parser(&types, &opers, &ctxts).easy_parse(input).unwrap().0;
 
-        let result = parser.easy_parse(input);
-        dbg!(&result);
-        assert!(result.is_ok());
-
-        let terminner = result.unwrap().0;
-        let context = Context(HashMap::from([(VarId(0), Type::Unary(TypeId(0)))]));
-        let term = Term {
-            context: context,
-            inner: Rc::new(terminner),
-        };
         let got: Vec<(Position, String)> = term
             .subterms()
             .map(|st| (st.pos, format!("{:?}", st.term)))

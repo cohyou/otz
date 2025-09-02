@@ -24,7 +24,7 @@ where
     string(DIRECTIVE_SIGN)
         .and(string("elem"))
         .and(spaces())
-        .with(context_parser(ctxts, types))
+        .with(context_parser(types, ctxts))
         .map(move |ctxt| {
             let elems = {
                 let mut elems_ref = elems.borrow_mut();

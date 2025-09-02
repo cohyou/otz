@@ -34,3 +34,9 @@ impl std::fmt::Debug for VarId {
         write!(f, "Var{}", self.0)
     }
 }
+
+#[derive(Clone, PartialEq, Debug)]
+pub enum Symbol {
+    Var(VarId),
+    Fun(OperId),
+}

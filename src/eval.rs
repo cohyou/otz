@@ -78,7 +78,10 @@ fn eval_generators(instance: &Instance, query_entity: &QueryEntity) -> Vec<Subst
                         .iter()
                         .try_fold(init, |mut subst, (varid, tp)| {
                             (e.1 == tp).then(|| {
-                                subst.insert(Var::Id(varid.clone()), Rc::new(TermInner::var(e.0.clone())));
+                                subst.insert(
+                                    Var::Id(varid.clone()),
+                                    Rc::new(TermInner::var(e.0.clone())),
+                                );
                                 subst
                             })
                         })

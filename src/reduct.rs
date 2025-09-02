@@ -68,7 +68,8 @@ pub fn reduct(term: Rc<Term>, rules: &Vec<Rule>) -> Rc<Term> {
     let redexes = rules
         .iter()
         .map(|rule| term.find_redexes_from(rule))
-        .flatten().collect::<Vec<_>>();
+        .flatten()
+        .collect::<Vec<_>>();
 
     dbg!(&redexes);
     if redexes.is_empty() {
@@ -87,7 +88,9 @@ impl Term {
     /// `self`の部分項のうち、`σ(before)`と一致するような`σ`が存在するようなものを探す。
     fn find_redexes_from(&self, rule: &Rule) -> Vec<Redex> {
         self.subterms()
-            .inspect(|subterm| {dbg!(subterm);})
+            .inspect(|subterm| {
+                dbg!(subterm);
+            })
             .filter_map(|subterm| {
                 // `σs`が`subterm`に一致するような`σ`があるかどうかを探す
                 subterm.find_redex_from(rule)
@@ -115,21 +118,23 @@ impl Subterm {
         let pattern = rule.before();
         let init = Subst::default();
 
-        pattern.subterms().try_fold(init,|mut subst, pat_subterm| {
-            dbg!(&pat_subterm.pos);
-            self.term.get_at(&pat_subterm.pos).and_then(|t| {
-                // これまでのsubstを適用する
-                let new_t = t.substitute(&subst);
-                let pat = pat_subterm.term;
-                dbg!(&pat, &t, &new_t);
-                pat.try_match(Rc::new(new_t)).map(|new_subst| {
-                    subst.0.extend(new_subst.0);
-                    dbg!(&subst);
-                    subst
+        pattern
+            .subterms()
+            .try_fold(init, |mut subst, pat_subterm| {
+                dbg!(&pat_subterm.pos);
+                self.term.get_at(&pat_subterm.pos).and_then(|t| {
+                    // これまでのsubstを適用する
+                    let new_t = t.substitute(&subst);
+                    let pat = pat_subterm.term;
+                    dbg!(&pat, &t, &new_t);
+                    pat.try_match(Rc::new(new_t)).map(|new_subst| {
+                        subst.0.extend(new_subst.0);
+                        dbg!(&subst);
+                        subst
+                    })
                 })
             })
-        })
-        .map(|subst| Redex::new(self.main.clone(), self.pos.clone(), subst, rule.clone()))
+            .map(|subst| Redex::new(self.main.clone(), self.pos.clone(), subst, rule.clone()))
     }
 }
 
@@ -141,8 +146,11 @@ impl Term {
                 let subst = HashMap::from([(Var::Id(vid.clone()), term.inner.clone())]);
                 Some(subst.into())
             }
-            TermInner::RuledVar(vid,rid,kind) => {
-                let subst = HashMap::from([(Var::Ruled(vid.clone(),*rid,kind.clone()), term.inner.clone())]);
+            TermInner::RuledVar(vid, rid, kind) => {
+                let subst = HashMap::from([(
+                    Var::Ruled(vid.clone(), *rid, kind.clone()),
+                    term.inner.clone(),
+                )]);
                 Some(subst.into())
             }
             TermInner::Fun(oid_pat, _) => {
@@ -159,95 +167,73 @@ impl Term {
 
 #[cfg(test)]
 mod test {
-    use std::{collections::HashMap, rc::Rc};
+    use std::{rc::Rc};
 
     use combine::EasyParser;
     use rstest::*;
 
-    use crate::id::{TypeId, VarId};
     use crate::parser::rule::rule_parser;
     use crate::parser::term::term_parser;
     use crate::reduct::reduct;
     use crate::rule::Rule;
-    use crate::r#type::Type;
-    use crate::{context_table::CtxtTable, id::OperId, parser::term::terminner::oper::terminner_parser, symbol_table::SymbolTable, term::Term};
-    use crate::context::Context;
+    use crate::util::{opers, types};
+    use crate::{
+        context_table::CtxtTable,
+    };
 
     #[rstest]
     #[case("xx yy zz z: Int | plus![plus![xx plus![yy zz]] z]")]
     fn test_normalize(#[case] input: &str) {
-        let types = SymbolTable::<TypeId>::new();
-        types.assign("Int".to_string());
-        let opers = SymbolTable::<OperId>::new();
-        opers.assign("plus".to_string());
-        // opers.assign("minus".to_string());
+        let types = types(vec!["Int"]);
+        let opers = opers(vec!["plus"]);    
         let ctxts = CtxtTable::new();
-        ctxts.assign_to_current("x".to_string());
-        ctxts.assign_to_current("y".to_string());
-        ctxts.assign_to_current("z".to_string());
-        ctxts.assign_to_current("xx".to_string());
-        ctxts.assign_to_current("yy".to_string());
-        ctxts.assign_to_current("zz".to_string());
 
-        let mut ha = HashMap::new();
-        ha.insert(VarId(0), Type::Unary(TypeId(0)));
-        
-        let term = term_parser(&types, &ctxts, &opers).easy_parse(input).unwrap().0;
+        let term = term_parser(&types, &opers, &ctxts)
+            .easy_parse(input)
+            .unwrap()
+            .0;
         let normalized = term.normalize(&rules());
         dbg!(normalized);
     }
 
     #[rstest]
-    // #[case("x: Int | plus![0 x]]", "x: Int z: Int | plus![0 plus![x z]]")]
-    // #[case("x: Int | x", "x: Int z: Int | plus![x z]")]
+    #[case("x: Int | plus![0 x]]", "x: Int z: Int | plus![0 plus![x z]]")]
+    #[case("x: Int | x", "x: Int z: Int | plus![x z]")]
     #[case("x: Int | 0", "x: Int | 0")]
     fn test_try_match(#[case] pattern: &str, #[case] term: &str) {
         use combine::Parser;
-
         use crate::parser::term::term_parser;
-        let types = SymbolTable::<TypeId>::new();
-        types.assign("Int".to_string());
-        let opers = SymbolTable::<OperId>::new();
-        opers.assign("plus".to_string());
+
+        let types = types(vec!["Int"]);
+        let opers = opers(vec!["plus"]);        
         let ctxts = CtxtTable::new();
-        ctxts.assign_to_current("x".to_string());
-        ctxts.assign_to_current("z".to_string());
 
-        let pattern = term_parser(&types, &ctxts, &opers).parse(pattern).unwrap().0;
-        let term = term_parser(&types, &ctxts, &opers).parse(term).unwrap().0;
+        let pattern = term_parser(&types, &opers, &ctxts)
+            .parse(pattern)
+            .unwrap()
+            .0;
+        let term = term_parser(&types, &opers, &ctxts).parse(term).unwrap().0;
 
-        // let result = term.try_match(pattern);
         let result = pattern.try_match(Rc::new(term));
         dbg!(&result);
     }
 
-    // [src/reduct.rs:90:33] subterm = Subterm {
-    // main: Fun1[Int0, Fun1[Var0, Var1]],
-    // pos: [],
-    // term: Fun1[Int0, Fun1[Var0, Var1]],
     #[rstest]
-    // #[case("x: Int | plus![0 x] -> x", vec![], "x z: Int | plus![0 plus![x z]]")]
+    #[case("x: Int | plus![0 x] -> x", vec![], "x z: Int | plus![0 plus![x z]]")]
     #[case("x y z: Int | plus![plus![x y] z] -> plus![x plus![y z]]", vec![], "xx yy zz z: Int | plus![plus![xx yy] plus![zz z]]")]
     fn test_find_redex_from(#[case] rule: &str, #[case] pos: Vec<usize>, #[case] input: &str) {
-        let types = SymbolTable::<TypeId>::new();
-        types.assign("Int".to_string());
-
         use crate::subterm::Subterm;
-        let opers = SymbolTable::<OperId>::new();
-        opers.assign("plus".to_string());
-        // opers.assign("minus".to_string());
+
+        let types = types(vec!["Int"]);
+        let opers = opers(vec!["plus"]);        
         let ctxts = CtxtTable::new();
-        ctxts.assign_to_current("x".to_string());
-        ctxts.assign_to_current("y".to_string());
-        ctxts.assign_to_current("z".to_string());
-        ctxts.assign_to_current("xx".to_string());
-        ctxts.assign_to_current("yy".to_string());
-        ctxts.assign_to_current("zz".to_string());
 
-        let mut ha = HashMap::new();
-        ha.insert(VarId(0), Type::Unary(TypeId(0)));
-
-        let term = Rc::new(term_parser(&types, &ctxts, &opers).easy_parse(input).unwrap().0);
+        let term = Rc::new(
+            term_parser(&types, &opers, &ctxts)
+                .easy_parse(input)
+                .unwrap()
+                .0,
+        );
         let subterm = Subterm {
             main: term.clone(),
             pos: pos.clone(),
@@ -262,88 +248,55 @@ mod test {
     }
 
     #[rstest]
-    #[case("plus![0 plus![x z]]")]
+    #[case("x z: Int | plus![0 plus![x z]]")]
     fn test_find_redexes_from(#[case] input: &str) {
-        // let types = SymbolTable::<TypeId>::new();
-        // types.assign("Int".to_string());
-        let opers = SymbolTable::<OperId>::new();
-        opers.assign("plus".to_string());
-        // opers.assign("minus".to_string());
+        let types = types(vec!["Int"]);
+        let opers = opers(vec!["plus"]);
         let ctxts = CtxtTable::new();
-        ctxts.assign_to_current("x".to_string());
-        ctxts.assign_to_current("z".to_string());
 
-        let mut ha = HashMap::new();
-        ha.insert(VarId(0), Type::Unary(TypeId(0)));
-        
-        let inner = terminner_parser(&ctxts, &opers).easy_parse(input).unwrap().0;
-        dbg!(&inner);
-
-        let context = Context(ha);
-        let term = Term {
-            context,
-            inner: Rc::new(inner),
-        };
+        let term = term_parser(&types, &opers, &ctxts).easy_parse(input).unwrap().0;
         let redexes = term.find_redexes_from(&rules()[0]);
         dbg!(&redexes);
     }
 
+    /// r1: 0+x -> x
+    /// r2: (-x)+x -> 0
+    /// r3: (x+y)+z -> x+(y+z)
     fn rules() -> Vec<Rule> {
-        let types = SymbolTable::<TypeId>::new();
-        types.assign("Int".to_string());
-        let opers = SymbolTable::<OperId>::new();
-        opers.assign("plus".to_string());
-        opers.assign("minus".to_string());
-        let ctxts12 = CtxtTable::new();
-        ctxts12.assign_to_current("x".to_string());
-        let ctxts3 = CtxtTable::new();
-        ctxts3.assign_to_current("x".to_string());
-        ctxts3.assign_to_current("y".to_string());
-        ctxts3.assign_to_current("z".to_string());
-        // r1: 0+x -> x
-        // r2: (-x)+x -> 0
-        // r3: (x+y)+z -> x+(y+z)
+        let types = types(vec!["Int"]);
+        let opers = opers(vec!["plus", "minus"]);
+        let ctxts = CtxtTable::new();
+
         let input_rule1 = "x: Int | plus![0 x] -> x";
         let input_rule2 = "x: Int | plus![minus!x x] -> 0";
-        let input_rule3 =
-            "x: Int y: Int z: Int | plus![plus![x y] z] -> plus![x plus![y z]]";
-        let rule1 = rule_parser(&types, &ctxts12, &opers)
+        let input_rule3 = "x: Int y: Int z: Int | plus![plus![x y] z] -> plus![x plus![y z]]";
+        let rule1 = rule_parser(&types, &ctxts, &opers)
             .easy_parse(input_rule1)
             .unwrap()
             .0;
-        let rule2 = rule_parser(&types, &ctxts12, &opers)
+        let rule2 = rule_parser(&types, &ctxts, &opers)
             .easy_parse(input_rule2)
             .unwrap()
             .0;
-        let rule3 = rule_parser(&types, &ctxts3, &opers)
+        let rule3 = rule_parser(&types, &ctxts, &opers)
             .easy_parse(input_rule3)
             .unwrap()
             .0;
         vec![rule1, rule2, rule3]
-        // vec![rule1]
     }
-    
+
     #[rstest]
-    // #[case("x z: Int | plus![0 plus![x z]]")]
+    #[case("x z: Int | plus![0 plus![x z]]")]
     #[case("xx yy zz z: Int | plus![plus![xx plus![yy zz]] z]")]
     fn test_reduct(#[case] input: &str) {
-        let types = SymbolTable::<TypeId>::new();
-        types.assign("Int".to_string());
-        let opers = SymbolTable::<OperId>::new();
-        opers.assign("plus".to_string());
-        // opers.assign("minus".to_string());
+        let types = types(vec!["Int"]);
+        let opers = opers(vec!["plus"]);
         let ctxts = CtxtTable::new();
-        ctxts.assign_to_current("x".to_string());
-        ctxts.assign_to_current("y".to_string());
-        ctxts.assign_to_current("z".to_string());
-        ctxts.assign_to_current("xx".to_string());
-        ctxts.assign_to_current("yy".to_string());
-        ctxts.assign_to_current("zz".to_string());
 
-        let mut ha = HashMap::new();
-        ha.insert(VarId(0), Type::Unary(TypeId(0)));
-        
-        let term = term_parser(&types, &ctxts, &opers).easy_parse(input).unwrap().0;
+        let term = term_parser(&types, &opers, &ctxts)
+            .easy_parse(input)
+            .unwrap()
+            .0;
         let reducted = reduct(Rc::new(term), &rules());
         dbg!(reducted);
     }
