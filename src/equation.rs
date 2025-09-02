@@ -1,10 +1,13 @@
 use std::rc::Rc;
 
 use crate::context::Context;
+use crate::symbol_table::Names;
 use crate::term::{Term, TermInner};
+
 #[derive(PartialEq, Clone)]
 pub struct Equation {
     pub context: Context,
+    pub names: Names,
     pub left: Rc<TermInner>,
     pub right: Rc<TermInner>,
 }
@@ -23,14 +26,14 @@ impl Equation {
     pub fn left_term(&self) -> Term {
         Term {
             context: self.context.clone(),
-            names: unimplemented!(),
+            names: self.names.clone(),
             inner: self.left.clone(),
         }
     }
     pub fn right_term(&self) -> Term {
         Term {
             context: self.context.clone(),
-            names: unimplemented!(),
+            names: self.names.clone(),
             inner: self.right.clone(),
         }
     }

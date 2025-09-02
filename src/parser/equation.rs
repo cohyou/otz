@@ -31,8 +31,12 @@ where
         .and(right_parser)
         .map(|((context, left), right)| {
             ctxts.complete();
+            let mut names = ctxts.current_var_table();
+            let oper_names = opers.current_table();
+            names.extend(oper_names);            
             Equation {
                 context,
+                names,
                 left: Rc::new(left),
                 right: Rc::new(right),
             }
@@ -61,11 +65,15 @@ fn test_terminner_equation_parser() {
     let mut vars = HashMap::new();
     vars.insert(VarId(0), crate::r#type::Type::Unary(TypeId(1))); // Mocking a type for testing
     let context = Context(vars);
+    let mut names = ctxts.current_var_table();
+    let oper_names = opers.current_table();   
+    names.extend(oper_names);  
     assert_eq!(
         r,
         Ok((
             Equation {
                 context: context,
+                names,
                 left: Rc::new(TermInner::Fun(
                     OperId(1),
                     vec![TermInner::Fun(OperId(1), vec![TermInner::Var(VarId(0)).into()]).into()]

@@ -32,11 +32,13 @@ where
         .with(left_parser.skip(spaces()).skip(string("=").skip(spaces())))
         .and(right_parser)
         .map(|(left, right)| -> Equation {
-            // let mut elems_map = HashMap::new();
-            // elems_map.insert(CtxtId::default(), elems.borrow().clone());
             let context = Context(elems.borrow().clone());
+            let mut names = ctxts.current_var_table();
+            let oper_names = opers.current_table();
+            names.extend(oper_names);
             Equation {
                 context,
+                names,
                 left: Rc::new(left),
                 right: Rc::new(right),
             }

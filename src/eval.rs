@@ -101,6 +101,7 @@ fn eval_generators(instance: &Instance, query_entity: &QueryEntity) -> Vec<Subst
 
                         let substituted_equation = Equation {
                             context: left_substed.context,
+                            names: left_substed.names,
                             left: left_substed.inner,
                             right: right_substed.inner,
                         };
