@@ -23,7 +23,7 @@ impl Instance {
 impl Equation {
     pub fn to_rule(&self) -> Rule {
         // TODO: 本来はそのままではなく向きを決めるアルゴリズムの実装が必要
-        Rule::new(self.context.clone(), self.left.clone(), self.right.clone())
+        Rule::new(self.context.clone(), self.names.clone(),self.left.clone(), self.right.clone())
     }
 
     fn is_reducible(&self, rules: &Vec<Rule>) -> bool {
@@ -71,7 +71,7 @@ pub fn reduct(term: Rc<Term>, rules: &Vec<Rule>) -> Rc<Term> {
         .flatten()
         .collect::<Vec<_>>();
 
-    dbg!(&redexes);
+    // dbg!(&redexes);
     if redexes.is_empty() {
         return term.clone();
     }
@@ -88,9 +88,9 @@ impl Term {
     /// `self`の部分項のうち、`σ(before)`と一致するような`σ`が存在するようなものを探す。
     fn find_redexes_from(&self, rule: &Rule) -> Vec<Redex> {
         self.subterms()
-            .inspect(|subterm| {
-                dbg!(subterm);
-            })
+            // .inspect(|subterm| {
+            //     dbg!(subterm);
+            // })
             .filter_map(|subterm| {
                 // `σs`が`subterm`に一致するような`σ`があるかどうかを探す
                 subterm.find_redex_from(rule)
@@ -121,15 +121,15 @@ impl Subterm {
         pattern
             .subterms()
             .try_fold(init, |mut subst, pat_subterm| {
-                dbg!(&pat_subterm.pos);
+                // dbg!(&pat_subterm.pos);
                 self.term.get_at(&pat_subterm.pos).and_then(|t| {
                     // これまでのsubstを適用する
                     let new_t = t.substitute(&subst);
                     let pat = pat_subterm.term;
-                    dbg!(&pat, &t, &new_t);
+                    // dbg!(&pat, &t, &new_t);
                     pat.try_match(Rc::new(new_t)).map(|new_subst| {
                         subst.0.extend(new_subst.0);
-                        dbg!(&subst);
+                        // dbg!(&subst);
                         subst
                     })
                 })

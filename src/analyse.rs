@@ -1,8 +1,8 @@
 use std::{cmp::Ordering, rc::Rc};
 
-use crate::{context::Context, rule::Rule, term::TermInner};
+use crate::{context::Context, rule::Rule, symbol_table::Names, term::TermInner};
 
-pub fn analyse(context: Context, left: &Rc<TermInner>, right: &Rc<TermInner>) -> Rule {
+pub fn analyse(context: Context, names: Names, left: &Rc<TermInner>, right: &Rc<TermInner>) -> Rule {
     // analyse_inner(left.clone(), right.clone());
 
     // 1-1 順序つかないものを消す
@@ -19,10 +19,10 @@ pub fn analyse(context: Context, left: &Rc<TermInner>, right: &Rc<TermInner>) ->
     // };
     if analyse_inner(left, right) {
         // left > right
-        Rule::new(context, left.clone(), right.clone())
+        Rule::new(context, names, left.clone(), right.clone())
     } else {
         // left < right
-        Rule::new(context, right.clone(), left.clone())
+        Rule::new(context, names, right.clone(), left.clone())
     }
 }
 
@@ -133,7 +133,10 @@ mod test {
             .unwrap()
             .0;
         dbg!(&eq);
-        let rule = analyse(eq.context, &eq.left, &eq.right);
+        let mut names = ctxts.current_var_table();
+        let oper_names = opers.current_table();
+        names.extend(oper_names);
+        let rule = analyse(eq.context, names, &eq.left, &eq.right);
         dbg!(&rule);
     }
 }

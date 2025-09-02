@@ -22,10 +22,10 @@ pub struct Rule {
 }
 
 impl Rule {
-    pub fn new(context: Context, before: Rc<TermInner>, after: Rc<TermInner>) -> Self {
+    pub fn new(context: Context, names: Names, before: Rc<TermInner>, after: Rc<TermInner>) -> Self {
         Rule {            
             id: None,
-            names: Names::default(),
+            names,
             context,
             before,
             after,
@@ -46,5 +46,11 @@ impl Rule {
             names: self.names.clone(),
             inner: self.after.clone(),
         })
+    }
+}
+
+impl std::fmt::Display for Rule {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Rule< {} -> {} >", self.before(), self.after())
     }
 }

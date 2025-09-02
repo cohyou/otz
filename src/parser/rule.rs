@@ -33,6 +33,9 @@ where
         .and(right_parser)
         .map(|((context, before), after)| {
             // ctxts.complete();
-            Rule::new(context.clone(), Rc::new(before), Rc::new(after))
+            let mut names = ctxts.current_var_table();
+            let oper_names = opers.current_table();
+            names.extend(oper_names);
+            Rule::new(context.clone(), names, Rc::new(before), Rc::new(after))
         })
 }

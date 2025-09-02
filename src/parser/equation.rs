@@ -30,7 +30,7 @@ where
         .and(left_parser.skip(spaces()).skip(string("=").skip(spaces())))
         .and(right_parser)
         .map(|((context, left), right)| {
-            ctxts.complete();
+            // ctxts.complete();
             let mut names = ctxts.current_var_table();
             let oper_names = opers.current_table();
             names.extend(oper_names);            

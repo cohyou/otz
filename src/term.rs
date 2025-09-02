@@ -66,6 +66,7 @@ impl Term {
     ) -> std::fmt::Result {
         use TermInner::*;
         match inner.as_ref() {
+            Int(i) => { write!(f, "{}", i) }
             Var(vid) => {
                 let v = self
                     .names
@@ -74,7 +75,30 @@ impl Term {
                 if let Some((nm, _)) = v {
                     write!(f, "{}", nm)
                 } else {
-                    write!(f, "v{:?}", vid)
+                    write!(f, "v{:?}", vid.0)
+                }
+            }
+            RuledVar(vid,rid,kind) => {
+                let v = self
+                    .names
+                    .iter()
+                    .find(|(_, sym)| sym == &&Symbol::Var(vid.clone()));
+                if let Some((nm, _)) = v {
+                    let _ = write!(f, "{}", nm);
+                } else {
+                    let _ = write!(f, "v{:?}", vid.0);
+                }
+                let _ = if kind == &RuleKind::Set2 {
+                    write!(f, "''")
+                } else if kind == &RuleKind::Set1 {
+                    write!(f, "'")
+                } else {
+                    write!(f, "")
+                };
+                if kind == &RuleKind::NotSet {
+                    write!(f, "/{}", rid)
+                } else {
+                    write!(f, "")
                 }
             }
             Fun(operid, args) => {
@@ -105,9 +129,29 @@ impl Term {
                     };
                     write!(f, "")
                 } else {
-                    write!(f, "f{:?}", operid.0)
+                    let _ = write!(f, "f{:?}", operid.0);
+                    match args.len() {
+                        0 => {
+                            let _ = write!(f, ";");
+                        }
+                        1 => {
+                            let _ = write!(f, "!");
+                            let _ = self.fmt_inner(f, &args[0]);
+                        }
+                        _ => {
+                            let _ = write!(f, "![");
+                            args.iter().enumerate().for_each(|(i, arg)| {
+                                if i > 0 {
+                                    let _ = write!(f, " ");
+                                }
+                                let _ = self.fmt_inner(f, arg);
+                            });
+                            let _ = write!(f, "]");
+                        }
+                    };       
+                    write!(f, "")             
                 }
-            }
+            }            
             _ => unimplemented!(),
         }
     }
