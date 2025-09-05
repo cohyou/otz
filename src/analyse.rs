@@ -2,7 +2,12 @@ use std::{cmp::Ordering, rc::Rc};
 
 use crate::{context::Context, rule::Rule, symbol_table::Names, term::TermInner};
 
-pub fn analyse(context: Context, names: Names, left: &Rc<TermInner>, right: &Rc<TermInner>) -> Rule {
+pub fn analyse(
+    context: Context,
+    names: Names,
+    left: &Rc<TermInner>,
+    right: &Rc<TermInner>,
+) -> Rule {
     // analyse_inner(left.clone(), right.clone());
 
     // 1-1 順序つかないものを消す
@@ -128,7 +133,7 @@ mod test {
         let ctxts = CtxtTable::new();
         ctxts.assign_to_current("x".to_string());
 
-        let eq = equation_parser(&types, &ctxts, &opers)
+        let eq = equation_parser(&types, &opers, &ctxts)
             .parse(input)
             .unwrap()
             .0;

@@ -90,10 +90,7 @@ impl<'a> Iterator for Subterms {
 mod test {
     use crate::parser::term::term_parser;
     use crate::util::{opers, types};
-    use crate::{
-        context_table::CtxtTable,
-        subterm::Position,
-    };
+    use crate::{context_table::CtxtTable, subterm::Position};
 
     #[test]
     fn test_subterms1() {
@@ -102,9 +99,12 @@ mod test {
         let input = "a: Int | f![f!a a f;]";
 
         let types = types(vec!["Int"]);
-        let opers = opers(vec!["f"]);        
-        let ctxts = CtxtTable::new();        
-        let term = term_parser(&types, &opers, &ctxts).easy_parse(input).unwrap().0;
+        let opers = opers(vec!["f"]);
+        let ctxts = CtxtTable::new();
+        let term = term_parser(&types, &opers, &ctxts)
+            .easy_parse(input)
+            .unwrap()
+            .0;
 
         let got: Vec<(Position, String)> = term
             .subterms()

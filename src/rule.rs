@@ -1,7 +1,9 @@
 use std::rc::Rc;
 
 use crate::{
-    context::Context, symbol_table::Names, term::{Term, TermInner}
+    context::Context,
+    symbol_table::Names,
+    term::{Term, TermInner},
 };
 
 pub type RuleId = usize;
@@ -22,8 +24,13 @@ pub struct Rule {
 }
 
 impl Rule {
-    pub fn new(context: Context, names: Names, before: Rc<TermInner>, after: Rc<TermInner>) -> Self {
-        Rule {            
+    pub fn new(
+        context: Context,
+        names: Names,
+        before: Rc<TermInner>,
+        after: Rc<TermInner>,
+    ) -> Self {
+        Rule {
             id: None,
             names,
             context,

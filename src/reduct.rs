@@ -23,7 +23,12 @@ impl Instance {
 impl Equation {
     pub fn to_rule(&self) -> Rule {
         // TODO: 本来はそのままではなく向きを決めるアルゴリズムの実装が必要
-        Rule::new(self.context.clone(), self.names.clone(),self.left.clone(), self.right.clone())
+        Rule::new(
+            self.context.clone(),
+            self.names.clone(),
+            self.left.clone(),
+            self.right.clone(),
+        )
     }
 
     fn is_reducible(&self, rules: &Vec<Rule>) -> bool {
@@ -167,25 +172,23 @@ impl Term {
 
 #[cfg(test)]
 mod test {
-    use std::{rc::Rc};
+    use std::rc::Rc;
 
     use combine::EasyParser;
     use rstest::*;
 
+    use crate::context_table::CtxtTable;
     use crate::parser::rule::rule_parser;
     use crate::parser::term::term_parser;
     use crate::reduct::reduct;
     use crate::rule::Rule;
     use crate::util::{opers, types};
-    use crate::{
-        context_table::CtxtTable,
-    };
 
     #[rstest]
     #[case("xx yy zz z: Int | plus![plus![xx plus![yy zz]] z]")]
     fn test_normalize(#[case] input: &str) {
         let types = types(vec!["Int"]);
-        let opers = opers(vec!["plus"]);    
+        let opers = opers(vec!["plus"]);
         let ctxts = CtxtTable::new();
 
         let term = term_parser(&types, &opers, &ctxts)
@@ -201,11 +204,11 @@ mod test {
     #[case("x: Int | x", "x: Int z: Int | plus![x z]")]
     #[case("x: Int | 0", "x: Int | 0")]
     fn test_try_match(#[case] pattern: &str, #[case] term: &str) {
-        use combine::Parser;
         use crate::parser::term::term_parser;
+        use combine::Parser;
 
         let types = types(vec!["Int"]);
-        let opers = opers(vec!["plus"]);        
+        let opers = opers(vec!["plus"]);
         let ctxts = CtxtTable::new();
 
         let pattern = term_parser(&types, &opers, &ctxts)
@@ -225,7 +228,7 @@ mod test {
         use crate::subterm::Subterm;
 
         let types = types(vec!["Int"]);
-        let opers = opers(vec!["plus"]);        
+        let opers = opers(vec!["plus"]);
         let ctxts = CtxtTable::new();
 
         let term = Rc::new(
@@ -254,7 +257,10 @@ mod test {
         let opers = opers(vec!["plus"]);
         let ctxts = CtxtTable::new();
 
-        let term = term_parser(&types, &opers, &ctxts).easy_parse(input).unwrap().0;
+        let term = term_parser(&types, &opers, &ctxts)
+            .easy_parse(input)
+            .unwrap()
+            .0;
         let redexes = term.find_redexes_from(&rules()[0]);
         dbg!(&redexes);
     }

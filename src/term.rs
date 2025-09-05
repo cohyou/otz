@@ -1,9 +1,10 @@
-use std::{rc::Rc};
+use std::rc::Rc;
 
 use crate::{
     context::Context,
     id::{OperId, Symbol, VarId},
-    rule::{RuleId, RuleKind}, symbol_table::Names,
+    rule::{RuleId, RuleKind},
+    symbol_table::Names,
 };
 type Link<T> = std::rc::Rc<T>;
 
@@ -66,7 +67,9 @@ impl Term {
     ) -> std::fmt::Result {
         use TermInner::*;
         match inner.as_ref() {
-            Int(i) => { write!(f, "{}", i) }
+            Int(i) => {
+                write!(f, "{}", i)
+            }
             Var(vid) => {
                 let v = self
                     .names
@@ -78,7 +81,7 @@ impl Term {
                     write!(f, "v{:?}", vid.0)
                 }
             }
-            RuledVar(vid,rid,kind) => {
+            RuledVar(vid, rid, kind) => {
                 let v = self
                     .names
                     .iter()
@@ -148,10 +151,10 @@ impl Term {
                             });
                             let _ = write!(f, "]");
                         }
-                    };       
-                    write!(f, "")             
+                    };
+                    write!(f, "")
                 }
-            }            
+            }
             _ => unimplemented!(),
         }
     }

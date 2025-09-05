@@ -21,7 +21,7 @@ where
     string(DIRECTIVE_SIGN)
         .and(string("rule"))
         .and(spaces())
-        .with(equation_parser(types, ctxts, opers))
+        .with(equation_parser(types, opers, ctxts))
 }
 
 #[test]

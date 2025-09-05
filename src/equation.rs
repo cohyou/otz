@@ -22,6 +22,18 @@ impl std::fmt::Debug for Equation {
     }
 }
 
+impl std::fmt::Display for Equation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Eq<{} | {} = {}>",
+            self.context,
+            self.left_term(),
+            self.right_term()
+        )
+    }
+}
+
 impl Equation {
     pub fn left_term(&self) -> Term {
         Term {

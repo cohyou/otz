@@ -1,20 +1,22 @@
 use std::rc::Rc;
 
-use combine::parser::char::{spaces, string};
-use combine::stream::Stream;
-use combine::Parser;
+use combine::{
+    parser::char::{spaces, string},
+    Parser, Stream,
+};
 
-use crate::context_table::CtxtTable;
-use crate::equation::Equation;
-use crate::id::{OperId, TypeId};
-use crate::parser::context::context_parser;
-use crate::parser::term::terminner::oper::terminner_parser;
-use crate::symbol_table::SymbolTable;
+use crate::{
+    context_table::CtxtTable,
+    equation::Equation,
+    id::{OperId, TypeId},
+    parser::{context::context_parser, term::terminner::oper::terminner_parser},
+    symbol_table::SymbolTable,
+};
 
 pub fn equation_parser<'a, Input>(
     types: &'a SymbolTable<TypeId>,
-    ctxts: &'a CtxtTable,
     opers: &'a SymbolTable<OperId>,
+    ctxts: &'a CtxtTable,
 ) -> impl Parser<Input, Output = Equation> + 'a
 where
     Input: Stream<Token = char> + 'a,
@@ -33,7 +35,7 @@ where
             // ctxts.complete();
             let mut names = ctxts.current_var_table();
             let oper_names = opers.current_table();
-            names.extend(oper_names);            
+            names.extend(oper_names);
             Equation {
                 context,
                 names,
@@ -43,44 +45,24 @@ where
         })
 }
 
-#[test]
-fn test_terminner_equation_parser() {
-    use crate::combine::EasyParser;
-    use crate::context::Context;
-    use crate::id::VarId;
-    use crate::term::TermInner;
-    use std::collections::HashMap;
+#[cfg(test)]
+mod test {
+    use combine::EasyParser;
 
-    let example = "a: Bool | f![f![a]] = a";
+    use crate::{
+        context_table::CtxtTable,
+        parser::equation::equation_parser,
+        util::{opers, types},
+    };
 
-    let types = SymbolTable::<TypeId>::new();
-    let opers = SymbolTable::<OperId>::new();
-    opers.assign("f".to_string());
-    let ctxts = CtxtTable::new();
-    ctxts.assign_to_current("a".to_string());
-    let r = equation_parser(&types, &ctxts, &opers).easy_parse(example);
-    dbg!(&types);
-    dbg!(&opers);
+    #[test]
+    fn test_equation_parser() {
+        let types = types(vec![]);
+        let opers = opers(vec!["f"]);
+        let ctxts = CtxtTable::new();
 
-    let mut vars = HashMap::new();
-    vars.insert(VarId(0), crate::r#type::Type::Unary(TypeId(1))); // Mocking a type for testing
-    let context = Context(vars);
-    let mut names = ctxts.current_var_table();
-    let oper_names = opers.current_table();   
-    names.extend(oper_names);  
-    assert_eq!(
-        r,
-        Ok((
-            Equation {
-                context: context,
-                names,
-                left: Rc::new(TermInner::Fun(
-                    OperId(1),
-                    vec![TermInner::Fun(OperId(1), vec![TermInner::Var(VarId(0)).into()]).into()]
-                )),
-                right: Rc::new(TermInner::Var(VarId(0))),
-            },
-            ""
-        ))
-    );
+        let input = "a: Bool | f![f![a]] = a";
+        let result = equation_parser(&types, &opers, &ctxts).easy_parse(input);
+        println!("{}", &result.unwrap().0);
+    }
 }

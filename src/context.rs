@@ -11,3 +11,12 @@ impl std::fmt::Debug for Context {
         write!(f, "{:#?}", self.0)
     }
 }
+
+impl std::fmt::Display for Context {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.iter().for_each(|(k, v)| {
+            write!(f, "{:?}: {:?}", k, v).unwrap();
+        });
+        write!(f, "")
+    }
+}

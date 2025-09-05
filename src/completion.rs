@@ -1,7 +1,16 @@
 use std::{collections::HashMap, rc::Rc};
 
 use crate::{
-    analyse::analyse, context::Context, equation::Equation, id::VarId, rule::{Rule, RuleKind}, subst::{Subst, Var}, subterm::{Position, Subterm}, symbol_table::Names, term::{Term, TermInner}, unify::unify
+    analyse::analyse,
+    context::Context,
+    equation::Equation,
+    id::VarId,
+    rule::{Rule, RuleKind},
+    subst::{Subst, Var},
+    subterm::{Position, Subterm},
+    symbol_table::Names,
+    term::{Term, TermInner},
+    unify::unify,
 };
 
 pub fn complete(eqs: &Vec<Equation>) -> Vec<Rule> {
@@ -248,33 +257,35 @@ mod test {
     #[test]
     fn test_complete() {
         let types = types(vec!["Int"]);
-        let opers = opers(vec!["plus", "minus"]);        
+        let opers = opers(vec!["plus", "minus"]);
         let ctxts = CtxtTable::new();
 
         let input_rule1 = "x: Int | plus![0 x] = x";
         let input_rule2 = "x: Int | plus![minus!x x] = 0";
         let input_rule3 = "x: Int y: Int z: Int | plus![plus![x y] z] = plus![x plus![y z]]";
-        let eq1 = equation_parser(&types, &ctxts, &opers)
+        let eq1 = equation_parser(&types, &opers, &ctxts)
             .parse(input_rule1)
             .unwrap()
             .0;
-        let eq2 = equation_parser(&types, &ctxts, &opers)
+        let eq2 = equation_parser(&types, &opers, &ctxts)
             .parse(input_rule2)
             .unwrap()
             .0;
-        let eq3 = equation_parser(&types, &ctxts, &opers)
+        let eq3 = equation_parser(&types, &opers, &ctxts)
             .parse(input_rule3)
             .unwrap()
             .0;
         let rules = complete(&vec![eq1, eq2, eq3]);
         // dbg!(&rules);
-        rules.iter().for_each(|r| {println!("{}", r);});
+        rules.iter().for_each(|r| {
+            println!("{}", r);
+        });
     }
 
     #[test]
     fn test_make_critical_pair_set() {
         let types = types(vec!["Int"]);
-        let opers = opers(vec!["plus", "minus"]);        
+        let opers = opers(vec!["plus", "minus"]);
         let ctxts = CtxtTable::new();
 
         let input_rule1 = "x: Int y: Int z: Int | plus![plus![x y] z] -> plus![x plus![y z]]";
@@ -286,14 +297,16 @@ mod test {
         rule1.id = Some(1);
         let critical_pairs = make_critical_pair_set(&vec![rule1]);
         dbg!(&critical_pairs);
-        critical_pairs.iter().for_each(|cp| {println!("{}", cp);});
+        critical_pairs.iter().for_each(|cp| {
+            println!("{}", cp);
+        });
     }
 
     #[test]
     fn test_make_vars_ruled() {
         let types = types(vec!["Int"]);
-        let opers = opers(vec!["plus", "minus"]);        
-        let ctxts = CtxtTable::new();        
+        let opers = opers(vec!["plus", "minus"]);
+        let ctxts = CtxtTable::new();
 
         let input_rule1 = "x: Int y: Int z: Int | plus![plus![x y] z] -> plus![x plus![y z]]";
         let mut rule1 = rule_parser(&types, &ctxts, &opers)
@@ -314,8 +327,8 @@ mod test {
     fn test_check_overlap(#[case] input_rule1: &str, #[case] input_rule2: &str) {
         use crate::{id::VarId, rule::RuleKind};
         let types = types(vec!["Int"]);
-        let opers = opers(vec!["f", "g"]);        
-        let ctxts = CtxtTable::new();   
+        let opers = opers(vec!["f", "g"]);
+        let ctxts = CtxtTable::new();
 
         let rule1 = rule_parser(&types, &ctxts, &opers).parse(input_rule1);
         let rule2 = rule_parser(&types, &ctxts, &opers).parse(input_rule2);
@@ -344,8 +357,14 @@ mod test {
 
     #[rstest]
     #[case("x1: Int | plus![0 x1] -> x1", "x2: Int | plus![minus!x2 x2] -> 0")]
-    #[case("x1: Int | plus![0 x1] -> x1", "x3: Int y3: Int z3: Int | plus![plus![x3 y3] z3] -> plus![x3 plus![y3 z3]]")]
-    #[case("x3: Int y3: Int z3: Int | plus![plus![x3 y3] z3] -> plus![x3 plus![y3 z3]]", "x2: Int | plus![minus!x2 x2] -> 0")]
+    #[case(
+        "x1: Int | plus![0 x1] -> x1",
+        "x3: Int y3: Int z3: Int | plus![plus![x3 y3] z3] -> plus![x3 plus![y3 z3]]"
+    )]
+    #[case(
+        "x3: Int y3: Int z3: Int | plus![plus![x3 y3] z3] -> plus![x3 plus![y3 z3]]",
+        "x2: Int | plus![minus!x2 x2] -> 0"
+    )]
     #[case(
         "x3: Int y3: Int z3: Int | plus![plus![x3 y3] z3] -> plus![x3 plus![y3 z3]]",
         "x4: Int y4: Int z4: Int | plus![plus![x4 y4] z4] -> plus![x4 plus![y4 z4]]"
@@ -358,8 +377,8 @@ mod test {
         use crate::{id::VarId, rule::RuleKind};
 
         let types = types(vec!["Int"]);
-        let opers = opers(vec!["plus", "minus"]);        
-        let ctxts = CtxtTable::new();  
+        let opers = opers(vec!["plus", "minus"]);
+        let ctxts = CtxtTable::new();
 
         let mut rule1 = rule_parser(&types, &ctxts, &opers)
             .parse(input_rule1)
@@ -391,13 +410,17 @@ mod test {
     #[test]
     fn test_make_critical_pair_set2() {
         let critical_pairs = make_critical_pair_set(&rules());
-        critical_pairs.iter().for_each(|cp| {println!("{}", cp);});
+        critical_pairs.iter().for_each(|cp| {
+            println!("{}", cp);
+        });
     }
 
     #[test]
     fn test_rules() {
         let rules = rules();
-        rules.iter().for_each(|r| {println!("{}", r);});
+        rules.iter().for_each(|r| {
+            println!("{}", r);
+        });
     }
 
     /// r1: 0+x -> x
