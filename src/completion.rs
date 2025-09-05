@@ -20,12 +20,21 @@ pub fn complete(eqs: &Vec<Equation>) -> Vec<Rule> {
         .collect::<Vec<_>>();
     let mut critical_pairs = make_critical_pair_set(&rules);
 
+    println!("--- {}", critical_pairs.len());
+    critical_pairs.iter().for_each(|r| {
+        println!("{}", r);
+    });
+    println!("---");
+
     while !critical_pairs.is_empty() {
         let cp = critical_pairs.pop().unwrap();
         // p, qのrulesに関しての正規形p^,q^を求める
         let normal_p = cp.p_term().normalize(&rules);
         let normal_q = cp.q_term().normalize(&rules);
+        
         if normal_p != normal_q {
+            println!("{} != {}", normal_p, normal_q);
+
             let new_rule = analyse(cp.context, cp.names, &normal_p.inner, &normal_q.inner);
             rules.push(new_rule.clone());
             // α→βと既存rules内のrule毎の危険対の集合を作る
@@ -34,7 +43,15 @@ pub fn complete(eqs: &Vec<Equation>) -> Vec<Rule> {
                 .flat_map(|rule| find_critical_pairs(&new_rule, rule))
                 .collect::<Vec<_>>();
             critical_pairs.extend(new_pairs);
+        } else {
+            println!("{} == {}", normal_p, normal_q);
         }
+
+        println!("--- {}", critical_pairs.len());
+        critical_pairs.iter().for_each(|r| {
+            println!("{}", r);
+        });
+        println!("---");
     }
     rules
 }
@@ -245,17 +262,20 @@ mod test {
     use combine::Parser;
 
     use crate::{
-        completion::{complete, make_critical_pair_set, Overlap},
-        context_table::CtxtTable,
-        parser::{equation::equation_parser, rule::rule_parser},
-        rule::{Rule, RuleKind},
-        util::{opers, types},
+        completion::{complete, make_critical_pair_set, Overlap}, context_table::CtxtTable, equation::Equation, parser::{equation::equation_parser, rule::rule_parser}, rule::{Rule, RuleKind}, util::{opers, types}
     };
 
     use rstest::*;
 
     #[test]
     fn test_complete() {
+        let rules = complete(&eqs());
+        rules.iter().for_each(|r| {
+            println!("{}", r);
+        });
+    }
+
+    fn eqs() -> Vec<Equation> {
         let types = types(vec!["Int"]);
         let opers = opers(vec!["plus", "minus"]);
         let ctxts = CtxtTable::new();
@@ -275,13 +295,8 @@ mod test {
             .parse(input_rule3)
             .unwrap()
             .0;
-        let rules = complete(&vec![eq1, eq2, eq3]);
-        // dbg!(&rules);
-        rules.iter().for_each(|r| {
-            println!("{}", r);
-        });
+        vec![eq1, eq2, eq3]
     }
-
     #[test]
     fn test_make_critical_pair_set() {
         let types = types(vec!["Int"]);
