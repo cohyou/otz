@@ -258,7 +258,7 @@ impl Overlap {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use combine::Parser;
 
     use crate::{

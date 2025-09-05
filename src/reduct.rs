@@ -171,7 +171,7 @@ impl Term {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use std::rc::Rc;
 
     use combine::EasyParser;

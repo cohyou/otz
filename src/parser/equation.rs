@@ -46,7 +46,7 @@ where
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use combine::EasyParser;
 
     use crate::{

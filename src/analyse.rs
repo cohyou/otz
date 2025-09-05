@@ -108,7 +108,7 @@ impl TermInner {
 // }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use combine::Parser;
     use rstest::*;
 

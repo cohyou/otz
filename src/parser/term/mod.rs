@@ -44,7 +44,7 @@ where
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use crate::{
         parser::term::term_parser,
         util::{opers, types, vars},

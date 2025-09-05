@@ -189,7 +189,7 @@ fn is_subterm_of2(_ruledvar: &TermInner, _target: &TermInner) -> bool {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use std::rc::Rc;
 
     use combine::Parser;

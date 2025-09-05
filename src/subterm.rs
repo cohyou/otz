@@ -87,7 +87,7 @@ impl<'a> Iterator for Subterms {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use crate::parser::term::term_parser;
     use crate::util::{opers, types};
     use crate::{context_table::CtxtTable, subterm::Position};
