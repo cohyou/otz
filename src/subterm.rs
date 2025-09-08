@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::term::{Term, TermInner};
+use crate::{subst::Var, term::{Term, TermInner}};
 
 /// ─────────────────────────────────────────────────────────
 /// ざっくりTRS用：項の定義と部分項イテレータ
@@ -42,6 +42,18 @@ impl Term {
             names: self.names.clone(),
             inner: t.clone(),
         }))
+    }
+
+    pub fn vars(&self) -> Vec<Var> {
+        self.subterms().filter_map(|subterm| {
+            match subterm.term.inner.as_ref() {
+                TermInner::Var(var) => Some(Var::Id(var.clone())),
+                TermInner::RuledVar(vid, rid, kind) => {
+                    Some(Var::Ruled(vid.clone(), *rid, kind.clone()))
+                },
+                _ => None
+            }
+        }).collect()
     }
 
     // /// 後順（ボトムアップ）をざっくり：前順を全部集めて反転

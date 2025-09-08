@@ -160,16 +160,21 @@ impl Term {
     fn try_match(&self, term: Rc<Term>) -> Option<Subst> {
         match self.inner.as_ref() {
             TermInner::Var(vid) => {
-                let subst = HashMap::from([(Var::Id(vid.clone()), term.inner.clone())]);
-                Some(subst.into())
+                (!term.vars().contains(&Var::Id(vid.clone()))).then(|| {
+                    let subst = HashMap::from([(Var::Id(vid.clone()), term.inner.clone())]);
+                    subst.into()
+                })
             }
             TermInner::RuledVar(vid, rid, kind) => {
-                let subst = HashMap::from([(
-                    Var::Ruled(vid.clone(), *rid, kind.clone()),
-                    term.inner.clone(),
-                )]);
-                Some(subst.into())
-            }
+                (!term.vars().contains(&Var::Ruled(vid.clone(), *rid, kind.clone())))
+                .then(|| {
+                    let subst = HashMap::from([(
+                        Var::Ruled(vid.clone(), *rid, kind.clone()),
+                        term.inner.clone(),
+                    )]);
+                    subst.into()
+                })
+            },
             TermInner::Fun(oid_pat, _) => {
                 if let TermInner::Fun(oid_tgt, _) = term.inner.as_ref() {
                     (oid_pat == oid_tgt).then_some(Subst::default())
