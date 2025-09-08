@@ -16,6 +16,7 @@ mod term;
 mod theory;
 mod r#type;
 mod unify;
+mod renumber;
 
 pub mod context_table;
 pub mod eval;
