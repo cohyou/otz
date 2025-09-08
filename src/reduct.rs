@@ -58,6 +58,16 @@ pub struct Redex {
     rule: Rule,
 }
 
+impl std::fmt::Display for Redex {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Redex<\nterm: {}, \npos: {:?}, \nsubst: {:?}, \nrule: {}>",
+            self.term, self.pos, self.subst, self.rule
+        )
+    }
+}
+
 impl Redex {
     fn new(term: Rc<Term>, pos: Position, subst: Subst, rule: Rule) -> Self {
         Redex {
@@ -76,7 +86,9 @@ pub fn reduct(term: Rc<Term>, rules: &Vec<Rule>) -> Rc<Term> {
         .flatten()
         .collect::<Vec<_>>();
 
-    // dbg!(&redexes);
+    redexes.iter().for_each(|redex| {
+        println!("{}", redex);
+    });
     if redexes.is_empty() {
         return term.clone();
     }
@@ -131,7 +143,7 @@ impl Subterm {
                     // これまでのsubstを適用する
                     let new_t = t.substitute(&subst);
                     let pat = pat_subterm.term;
-                    // dbg!(&pat, &t, &new_t);
+                    println!("pat:{} subst:{:?} {} => {}", &pat, &subst, &t, &new_t);
                     pat.try_match(Rc::new(new_t)).map(|new_subst| {
                         subst.0.extend(new_subst.0);
                         // dbg!(&subst);
@@ -185,10 +197,11 @@ mod tests {
     use crate::util::{opers, types};
 
     #[rstest]
-    #[case("xx yy zz z: Int | plus![plus![xx plus![yy zz]] z]")]
+    // #[case("xx yy zz z: Int | plus![plus![xx plus![yy zz]] z]")]
+    #[case("x z: Int | plus![minus!x plus![x z]]")]
     fn test_normalize(#[case] input: &str) {
         let types = types(vec!["Int"]);
-        let opers = opers(vec!["plus"]);
+        let opers = opers(vec!["plus", "minus"]);
         let ctxts = CtxtTable::new();
 
         let term = term_parser(&types, &opers, &ctxts)
@@ -197,6 +210,39 @@ mod tests {
             .0;
         let normalized = term.normalize(&rules());
         dbg!(normalized);
+    }
+
+    #[rstest]
+    #[case("x z: Int | plus![0 plus![x z]]")]
+    #[case("xx yy zz z: Int | plus![plus![xx plus![yy zz]] z]")]
+    fn test_reduct(#[case] input: &str) {
+        let types = types(vec!["Int"]);
+        let opers = opers(vec!["plus"]);
+        let ctxts = CtxtTable::new();
+
+        let term = term_parser(&types, &opers, &ctxts)
+            .easy_parse(input)
+            .unwrap()
+            .0;
+        let reducted = reduct(Rc::new(term), &rules());
+        dbg!(reducted);
+    }
+
+    #[rstest]
+    #[case("x z: Int | plus![0 plus![x z]]")]
+    fn test_find_redexes_from(#[case] input: &str) {
+        let types = types(vec!["Int"]);
+        let opers = opers(vec!["plus", "minus"]);
+        let ctxts = CtxtTable::new();
+
+        let term = term_parser(&types, &opers, &ctxts)
+            .easy_parse(input)
+            .unwrap()
+            .0;
+        let redexes = term.find_redexes_from(&rules()[0]);
+        redexes.iter().for_each(|redex| {
+            println!("{}", redex);
+        });
     }
 
     #[rstest]
@@ -250,21 +296,6 @@ mod tests {
         dbg!(&redexes);
     }
 
-    #[rstest]
-    #[case("x z: Int | plus![0 plus![x z]]")]
-    fn test_find_redexes_from(#[case] input: &str) {
-        let types = types(vec!["Int"]);
-        let opers = opers(vec!["plus"]);
-        let ctxts = CtxtTable::new();
-
-        let term = term_parser(&types, &opers, &ctxts)
-            .easy_parse(input)
-            .unwrap()
-            .0;
-        let redexes = term.find_redexes_from(&rules()[0]);
-        dbg!(&redexes);
-    }
-
     /// r1: 0+x -> x
     /// r2: (-x)+x -> 0
     /// r3: (x+y)+z -> x+(y+z)
@@ -289,21 +320,5 @@ mod tests {
             .unwrap()
             .0;
         vec![rule1, rule2, rule3]
-    }
-
-    #[rstest]
-    #[case("x z: Int | plus![0 plus![x z]]")]
-    #[case("xx yy zz z: Int | plus![plus![xx plus![yy zz]] z]")]
-    fn test_reduct(#[case] input: &str) {
-        let types = types(vec!["Int"]);
-        let opers = opers(vec!["plus"]);
-        let ctxts = CtxtTable::new();
-
-        let term = term_parser(&types, &opers, &ctxts)
-            .easy_parse(input)
-            .unwrap()
-            .0;
-        let reducted = reduct(Rc::new(term), &rules());
-        dbg!(reducted);
     }
 }
