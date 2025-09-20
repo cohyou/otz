@@ -17,16 +17,16 @@ pub enum RuleKind {
 #[derive(Clone, PartialEq, Debug)]
 pub struct Rule {
     pub id: Option<RuleId>,
-    pub context: Context,
-    pub names: Names,
+    pub context: Rc<Context>,
+    pub names: Rc<Names>,
     pub before: Rc<TermInner>,
     pub after: Rc<TermInner>,
 }
 
 impl Rule {
     pub fn new(
-        context: Context,
-        names: Names,
+        context: Rc<Context>,
+        names: Rc<Names>,
         before: Rc<TermInner>,
         after: Rc<TermInner>,
     ) -> Self {
@@ -61,3 +61,17 @@ impl std::fmt::Display for Rule {
         write!(f, "Rule< {} -> {} >", self.before(), self.after())
     }
 }
+
+impl std::cmp::PartialOrd for Rule {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        (other.before.size() + other.after.size())
+            .partial_cmp(&(self.before.size() + self.after.size()))
+    }
+}
+impl std::cmp::Ord for Rule {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.partial_cmp(other).unwrap()
+    }
+}
+
+impl std::cmp::Eq for Rule {}

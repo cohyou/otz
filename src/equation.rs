@@ -6,8 +6,8 @@ use crate::term::{Term, TermInner};
 
 #[derive(PartialEq, Clone)]
 pub struct Equation {
-    pub context: Context,
-    pub names: Names,
+    pub context: Rc<Context>,
+    pub names: Rc<Names>,
     pub left: Rc<TermInner>,
     pub right: Rc<TermInner>,
 }

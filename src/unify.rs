@@ -4,24 +4,31 @@ use crate::{
     id::VarId,
     rule::RuleKind,
     subst::{Subst, Var},
-    term::TermInner,
+    term::{Term, TermInner},
 };
 
 /// TODO: s/tのcontextの扱いを確認する
-pub fn unify(s: Rc<TermInner>, t: Rc<TermInner>) -> Option<Subst> {
+pub fn unify(s: Rc<Term>, t: Rc<Term>) -> Option<Subst> {
     use TermInner::{Fun, Int, RuledVar, Str, Var};
 
-    match (s.as_ref(), t.as_ref()) {
+    // println!("unify s: {} t: {}", s, t);
+
+    match (s.inner.as_ref(), t.inner.as_ref()) {
         (rv1 @ RuledVar(_, _, _), rv2 @ RuledVar(_, _, _)) if rv1 == rv2 => Some(Subst::default()),
-        (rv1 @ RuledVar(vid, rid, kind), u) | (u, rv1 @ RuledVar(vid, rid, kind)) => {
-            (!is_subterm_of2(rv1, u)).then_some(
-                HashMap::from([(
-                    crate::subst::Var::Ruled(vid.clone(), *rid, kind.clone()),
-                    Rc::new(u.clone()),
-                )])
-                .into(),
-            )
-        }
+        (RuledVar(vid, rid, kind), u) => (!is_subterm_of2(vid, rid, kind, t.as_ref())).then_some(
+            HashMap::from([(
+                crate::subst::Var::Ruled(vid.clone(), *rid, kind.clone()),
+                Rc::new(u.clone()),
+            )])
+            .into(),
+        ),
+        (u, RuledVar(vid, rid, kind)) => (!is_subterm_of2(vid, rid, kind, s.as_ref())).then_some(
+            HashMap::from([(
+                crate::subst::Var::Ruled(vid.clone(), *rid, kind.clone()),
+                Rc::new(u.clone()),
+            )])
+            .into(),
+        ),
 
         // 全く同じ内容なら
         (Var(x), Var(y)) if x == y => Some(Subst::default()),
@@ -30,7 +37,10 @@ pub fn unify(s: Rc<TermInner>, t: Rc<TermInner>) -> Option<Subst> {
 
         // s,tのどちらかが変数
         // 変数をx, 他の項をuとする
-        (Var(x), u) | (u, Var(x)) => (!is_subterm_of(x, u)).then_some(
+        (Var(x), u) => (!is_subterm_of(x, t.as_ref())).then_some(
+            HashMap::from([(crate::subst::Var::Id(x.clone()), Rc::new(u.clone()))]).into(),
+        ),
+        (u, Var(x)) => (!is_subterm_of(x, s.as_ref())).then_some(
             HashMap::from([(crate::subst::Var::Id(x.clone()), Rc::new(u.clone()))]).into(),
         ),
 
@@ -50,11 +60,21 @@ pub fn unify(s: Rc<TermInner>, t: Rc<TermInner>) -> Option<Subst> {
                         .try_fold(init, |mut theta, (tk, sk)| {
                             // 代入適用は演算子で定義してもいいかも theta[tk], theta[sk]
                             let tk_new = tk.substitute(&theta);
+                            let tk_new = Rc::new(Term {
+                                context: s.context.clone(),
+                                names: s.names.clone(),
+                                inner: tk_new,
+                            });
                             let sk_new = sk.substitute(&theta);
+                            let sk_new = Rc::new(Term {
+                                context: t.context.clone(),
+                                names: t.names.clone(),
+                                inner: sk_new,
+                            });
                             unify(tk_new, sk_new).map(|sigma| {
                                 // 合成は演算子で定義してもいいかも theta = sigma[theta];
                                 theta = sigma.compose(&theta);
-                                // dbg!(&sigma, &theta);
+                                // println!("unify sigma: {:?}\n      composed theta: {:?}", &sigma, &theta);
                                 theta
                             })
                         })
@@ -74,7 +94,7 @@ impl Subst {
     // τσ=
     // {xi:τ[si] | xi ∈ D(σ) and xi !≡ τ[si], i=1~n} ∪
     // {yi:ti | yi ∈ D(τ) - D(σ), i=1~m}
-    fn compose(&self, sigma: &Subst) -> Subst {
+    pub fn compose(&self, sigma: &Subst) -> Subst {
         // let mut tau = self.clone();
         let sigma_new = HashMap::new();
         let sig = sigma.0.iter().fold(sigma_new, |mut sig, (var, inner)| {
@@ -178,14 +198,14 @@ impl From<Vec<((usize, usize, RuleKind), VarId)>> for Subst {
 /// xがuの真部分項かどうか
 /// subtermsを調べていけばわかりそう
 /// 早いかどうかは別
-fn is_subterm_of(_vid: &VarId, _target: &TermInner) -> bool {
-    // target.subterms().any(|t| t.term.as_ref() == self)
-    false
+fn is_subterm_of(vid: &VarId, target: &Term) -> bool {
+    target.vars().contains(&Var::Id(vid.clone()))
 }
 
-fn is_subterm_of2(_ruledvar: &TermInner, _target: &TermInner) -> bool {
-    // target.subterms().any(|t| t.term.as_ref() == self)
-    false
+fn is_subterm_of2(v: &VarId, r: &usize, k: &RuleKind, target: &Term) -> bool {
+    target
+        .vars()
+        .contains(&Var::Ruled(v.clone(), *r, k.clone()))
 }
 
 #[cfg(test)]
@@ -200,10 +220,86 @@ mod tests {
         parser::term::terminner::oper::terminner_parser,
         subst::{Subst, Var},
         symbol_table::SymbolTable,
+        term::Term,
         unify::unify,
+        util::{opers, tm, types},
     };
 
     use rstest::*;
+
+    #[rstest]
+    // #[case(unifing1())]
+    // #[case(unifing2())]
+    #[case(unifing3())]
+    fn test_unify_self(#[case] (s, t): (Rc<Term>, Rc<Term>)) {
+        let result = unify(s, t);
+        dbg!(&result);
+    }
+
+    // use crate::term::TermInner;
+    // fn unifing1() -> (Rc<TermInner>, Rc<TermInner>) {
+    //     use std::rc::Rc;
+
+    //     use crate::id::{OperId};
+    //     // use crate::util::vars;
+    //     use crate::rule::RuleKind;
+    //     // plus![minus!x/1 plus![x/1 z/2]] -> z/2
+    //     let var_x_1 = Rc::new(TermInner::RuledVar(VarId(0), 1, RuleKind::Set1));
+    //     let var_z_1 = Rc::new(TermInner::RuledVar(VarId(2), 2, RuleKind::Set1));
+    //     let var_x_2 = Rc::new(TermInner::RuledVar(VarId(0), 1, RuleKind::Set2));
+    //     let var_z_2 = Rc::new(TermInner::RuledVar(VarId(2), 2, RuleKind::Set2));
+    //     let s = Rc::new(TermInner::Fun(OperId(1), vec![var_x_1.clone(), var_z_1.clone()]));
+    //     let t = Rc::new(TermInner::Fun(OperId(1), vec![
+    //         Rc::new(TermInner::Fun(OperId(2), vec![var_x_2.clone()])),
+    //         Rc::new(TermInner::Fun(OperId(1), vec![var_x_2.clone(), var_z_2.clone()]))
+    //     ]));
+    //     (s, t)
+    // }
+
+    // fn unifing2() -> (Rc<TermInner>, Rc<TermInner>) {
+    //     use std::rc::Rc;
+
+    //     use crate::id::{OperId};
+    //     // use crate::util::vars;
+    //     // use crate::rule::RuleKind;
+    //     // plus![minus!x/1 plus![x/1 z/2]] -> z/2
+    //     let var_x = Rc::new(TermInner::Var(VarId(0)));
+    //     let var_z = Rc::new(TermInner::Var(VarId(2)));
+    //     let s = Rc::new(TermInner::Fun(OperId(1), vec![var_x.clone(), var_z.clone()]));
+    //     let t = Rc::new(TermInner::Fun(OperId(1), vec![
+    //         Rc::new(TermInner::Fun(OperId(2), vec![var_x.clone()])),
+    //         s.clone()
+    //     ]));
+    //     (s, t)
+    // }
+
+    fn unifing3() -> (Rc<Term>, Rc<Term>) {
+        let types = types(vec!["Int"]);
+        let opers = opers(vec!["plus", "minus"]);
+        let ctxts = CtxtTable::new();
+        let s1_input = "x1 y1: Int | plus![minus!x1 plus![x1 y1]]";
+        let s1 = Rc::new(tm(s1_input, &types, &opers, &ctxts));
+        let s2_input = "x2: Int | plus![minus!x2 x2]";
+        let s2 = Rc::new(tm(s2_input, &types, &opers, &ctxts));
+        (s1, s2)
+    }
+
+    #[rstest]
+    #[case("x1: Int | x1", "x2: Int | g![x2]")]
+    #[case("x0: Int | x0", "x1: Int | g![x1]")]
+    #[case("x1: Int | g![x1]", "x0: Int | x0")]
+    // #[case("f![x0]", "f![g![x1]]")]
+    #[case("f![x0 x1]", "f![g![x1] g![x2]]")]
+    fn test_unify(#[case] t1: &str, #[case] t2: &str) {
+        let types = types(vec!["Int"]);
+        let opers = opers(vec!["f", "g"]);
+        let ctxts = CtxtTable::new();
+        let term1 = tm(t1, &types, &opers, &ctxts);
+        let term2 = tm(t2, &types, &opers, &ctxts);
+
+        let subst = unify(Rc::new(term2), Rc::new(term1));
+        dbg!(&subst);
+    }
 
     #[test]
     fn test_compose() {
@@ -224,26 +320,5 @@ mod tests {
         // let subst = subst1.compose(subst2);
         let subst = subst2.compose(&subst1);
         dbg!(subst);
-    }
-
-    #[rstest]
-    #[case("x1", "g![x2]")]
-    #[case("x0", "g![x1]")]
-    #[case("g![x1]", "x0")]
-    // #[case("f![x0]", "f![g![x1]]")]
-    #[case("f![x0 x1]", "f![g![x1] g![x2]]")]
-    fn test_unify(#[case] t1: &str, #[case] t2: &str) {
-        let opers = SymbolTable::<OperId>::new();
-        opers.assign("f".to_string());
-        opers.assign("g".to_string());
-        let ctxts = CtxtTable::new();
-        ctxts.assign_to_current("x0".to_string());
-        ctxts.assign_to_current("x1".to_string());
-        ctxts.assign_to_current("x2".to_string());
-        let term1 = terminner_parser(&ctxts, &opers).parse(t1);
-        let term2 = terminner_parser(&ctxts, &opers).parse(t2);
-
-        let subst = unify(Rc::new(term2.unwrap().0), Rc::new(term1.unwrap().0));
-        dbg!(&subst);
     }
 }

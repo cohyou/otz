@@ -1,6 +1,9 @@
 use std::rc::Rc;
 
-use crate::{subst::Var, term::{Term, TermInner}};
+use crate::{
+    subst::Var,
+    term::{Term, TermInner},
+};
 
 /// ─────────────────────────────────────────────────────────
 /// ざっくりTRS用：項の定義と部分項イテレータ
@@ -9,7 +12,7 @@ use crate::{subst::Var, term::{Term, TermInner}};
 pub type Position = Vec<usize>;
 
 #[derive(Clone, Debug)]
-pub struct Subterm {
+pub struct SubTerm {
     pub main: Rc<Term>,
     pub pos: Position,
     pub term: Rc<Term>,
@@ -19,7 +22,7 @@ impl Term {
     /// 前順（トップダウン、左→右）で部分項を走査するイテレータ。
     pub fn subterms(&self) -> Subterms {
         Subterms {
-            stack: vec![Subterm {
+            stack: vec![SubTerm {
                 main: Rc::new(self.clone()),
                 pos: vec![],
                 term: Rc::new(self.clone()),
@@ -45,15 +48,15 @@ impl Term {
     }
 
     pub fn vars(&self) -> Vec<Var> {
-        self.subterms().filter_map(|subterm| {
-            match subterm.term.inner.as_ref() {
+        self.subterms()
+            .filter_map(|subterm| match subterm.term.inner.as_ref() {
                 TermInner::Var(var) => Some(Var::Id(var.clone())),
                 TermInner::RuledVar(vid, rid, kind) => {
                     Some(Var::Ruled(vid.clone(), *rid, kind.clone()))
-                },
-                _ => None
-            }
-        }).collect()
+                }
+                _ => None,
+            })
+            .collect()
     }
 
     // /// 後順（ボトムアップ）をざっくり：前順を全部集めて反転
@@ -66,11 +69,11 @@ impl Term {
 
 /// 内部はシンプルにLIFOスタック（DFS前順）。子は逆順でpushして左→右を維持。
 pub struct Subterms {
-    stack: Vec<Subterm>,
+    stack: Vec<SubTerm>,
 }
 
 impl<'a> Iterator for Subterms {
-    type Item = Subterm;
+    type Item = SubTerm;
 
     fn next(&mut self) -> Option<Self::Item> {
         let current = self.stack.pop()?;
@@ -86,8 +89,8 @@ impl<'a> Iterator for Subterms {
                     names: t.clone().names.clone(),
                     inner: child.clone(),
                 };
-                self.stack.push(Subterm {
-                    main: current.term.clone(),
+                self.stack.push(SubTerm {
+                    main: current.main.clone(),
                     pos: next_pos,
                     term: Rc::new(child_term),
                 });

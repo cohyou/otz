@@ -36,8 +36,8 @@ where
             let oper_names = opers.current_table();
             names.extend(oper_names);
             Term {
-                context,
-                names,
+                context: context.into(),
+                names: names.into(),
                 inner: Rc::new(inner),
             }
         })

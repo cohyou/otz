@@ -36,6 +36,11 @@ where
             let mut names = ctxts.current_var_table();
             let oper_names = opers.current_table();
             names.extend(oper_names);
-            Rule::new(context.clone(), names, Rc::new(before), Rc::new(after))
+            Rule::new(
+                context.into(),
+                names.into(),
+                Rc::new(before),
+                Rc::new(after),
+            )
         })
 }

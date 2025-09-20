@@ -37,8 +37,8 @@ where
             let oper_names = opers.current_table();
             names.extend(oper_names);
             Equation {
-                context,
-                names,
+                context: context.into(),
+                names: names.into(),
                 left: Rc::new(left),
                 right: Rc::new(right),
             }

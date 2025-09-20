@@ -2,20 +2,39 @@ use std::{collections::HashMap, rc::Rc};
 
 use crate::{
     id::VarId,
+    reduct::Redex,
     rule::{RuleId, RuleKind},
     subterm::Position,
     term::{Term, TermInner},
 };
 use std::hash::Hash;
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub enum Var {
     Id(VarId),
     Ruled(VarId, RuleId, RuleKind),
 }
 
+impl std::fmt::Debug for Var {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Var::Id(vid) => write!(f, "{:?}", vid),
+            Var::Ruled(v, r, k) => write!(f, "Ruled({:?},{:?},{:?})", v, r, k),
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Subst(pub HashMap<Var, Rc<TermInner>>);
+
+impl std::fmt::Display for Subst {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.iter().for_each(|(k, v)| {
+            let _ = writeln!(f, "{:?}: {:?}", k, v);
+        });
+        write!(f, "")
+    }
+}
 
 impl Subst {
     pub fn new(map: HashMap<Var, Rc<TermInner>>) -> Self {
@@ -56,6 +75,7 @@ impl TermInner {
     }
 }
 
+/// innerの中の変数varをtermに置き換える
 pub fn substitute_inner(inner: Rc<TermInner>, var: &Var, term: Rc<TermInner>) -> Rc<TermInner> {
     match (inner.as_ref(), var) {
         (TermInner::Var(vid), Var::Id(v)) if vid == v => term,
@@ -74,9 +94,18 @@ pub fn substitute_inner(inner: Rc<TermInner>, var: &Var, term: Rc<TermInner>) ->
     }
 }
 
+impl Redex {
+    /// 項termの部分項self/atをtoで置き換えた項`self[ at <- to ]`を得る。
+    pub fn apply(&self) -> Rc<Term> {
+        let to = self.rule.after().substitute(&self.subst);
+        self.term.replace(&self.pos, to.into())
+    }
+}
+
 impl Term {
     /// 項selfの部分項self/atをtoで置き換えた項`self[ at <- to ]`を得る
     pub fn replace(&self, at: &Position, to: Rc<Term>) -> Rc<Term> {
+        // println!("replace: {} at: {:?} to: {}", self, at, to);
         let applied = Term {
             context: self.context.clone(),
             names: self.names.clone(),

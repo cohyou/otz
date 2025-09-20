@@ -3,13 +3,11 @@ use std::{cmp::Ordering, rc::Rc};
 use crate::{context::Context, rule::Rule, symbol_table::Names, term::TermInner};
 
 pub fn analyse(
-    context: Context,
-    names: Names,
+    context: Rc<Context>,
+    names: Rc<Names>,
     left: &Rc<TermInner>,
     right: &Rc<TermInner>,
-) -> Rule {
-    // analyse_inner(left.clone(), right.clone());
-
+) -> Option<Rule> {
     // 1-1 順序つかないものを消す
     // let mut eqs = Vec::from(self.eqs.clone());
     // eqs.retain(|Equation(_,t1,t2,_)| {
@@ -22,39 +20,50 @@ pub fn analyse(
     // } else {
     //     Rule::new(next_eq_id, new_pair.2, new_pair.1, (0, 0))
     // };
-    if analyse_inner(left, right) {
-        // left > right
-        Rule::new(context, names, left.clone(), right.clone())
-    } else {
-        // left < right
-        Rule::new(context, names, right.clone(), left.clone())
-    }
+
+    // println!("left: {:?} right: {:?}", left, right);
+
+    analyse_inner(left, right).map(|cmp| {
+        if cmp {
+            // left > right
+            Rule::new(context, names, left.clone(), right.clone())
+        } else {
+            // left < right
+            Rule::new(context, names, right.clone(), left.clone())
+        }
+    })
 }
 
-fn analyse_inner(t1: &Rc<TermInner>, t2: &Rc<TermInner>) -> bool {
+fn analyse_inner(t1: &Rc<TermInner>, t2: &Rc<TermInner>) -> Option<bool> {
     // まず、項のサイズを比較する
     // 一緒なら、関数のIDを比較する
     // 同じ関数なら、1つ目の引数同士を比較する
     match t1.size().cmp(&t2.size()) {
-        Ordering::Greater => true, // left > right
-        Ordering::Less => false,   // left < right
+        Ordering::Greater => Some(true), // left > right
+        Ordering::Less => Some(false),   // left < right
         Ordering::Equal => {
             match (t1.as_ref(), t2.as_ref()) {
                 (TermInner::Fun(f, args_f), TermInner::Fun(g, args_g)) => {
                     match f.cmp(g) {
-                        Ordering::Greater => true, // f > g
-                        Ordering::Less => false,   // f < g
+                        Ordering::Greater => Some(true), // f > g
+                        Ordering::Less => Some(false),   // f < g
                         Ordering::Equal => analyse_inner(&args_f[0], &args_g[0]),
                     }
                 }
-                _ => unimplemented!(),
+                (TermInner::Int(_), TermInner::Fun(_, _)) => Some(false),
+                // (TermInner::Var(_), TermInner::RuledVar(_, _, _)) => false,
+                // (TermInner::RuledVar(_,_,_), TermInner::Var(_)) => true,
+                _ => {
+                    /*println!("t1: {:?} t2: {:?}", t1, t2);*/
+                    None
+                }
             }
         }
     }
 }
 
 impl TermInner {
-    fn size(&self) -> usize {
+    pub fn size(&self) -> usize {
         // 含まれる関数の数
         match &self {
             &TermInner::Var(_) | TermInner::RuledVar(_, _, _) => 0,
@@ -125,6 +134,8 @@ mod tests {
     #[case("x: Int | plus![minus!x x] = 0")]
     #[case("x: Int y: Int z: Int | plus![x plus![y z]] = plus![plus![x y] z]")]
     fn test_analyse(#[case] input: &str) {
+        use std::rc::Rc;
+
         let types = SymbolTable::<TypeId>::new();
         types.assign("Int".to_string());
         let opers = SymbolTable::<OperId>::new();
@@ -141,7 +152,7 @@ mod tests {
         let mut names = ctxts.current_var_table();
         let oper_names = opers.current_table();
         names.extend(oper_names);
-        let rule = analyse(eq.context, names, &eq.left, &eq.right);
+        let rule = analyse(eq.context, Rc::new(names), &eq.left, &eq.right);
         dbg!(&rule);
     }
 }
