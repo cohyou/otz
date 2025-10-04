@@ -80,10 +80,10 @@ pub fn eq<'a>(
         .0
 }
 
-pub fn dispv<T: std::fmt::Display>(vec: &Vec<T>) {
-    println!("--- {} items [", vec.len());
+pub fn dispv<T: std::fmt::Display>(title: &str, vec: &Vec<T>) {
+    println!("{} [", title);
     vec.iter().for_each(|item| {
         println!("    {}", item);
     });
-    println!("] ---");
+    println!("]");
 }

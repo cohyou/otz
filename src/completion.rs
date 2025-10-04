@@ -7,8 +7,182 @@ use crate::{
     equation::Equation,
     rule::Rule,
     term::Term,
-    util::{eq, opers, types},
+    util::{dispv, eq, opers, types},
 };
+
+pub fn complete2(mut eqs: BinaryHeap<Equation>, max: usize) -> Vec<Rule> {
+    let mut step = 0;
+    let mut next_eq_id = eqs.len() + 1;
+    let mut rules = vec![];
+
+    while !eqs.is_empty() && (step < max || max == 0) {
+        println!("----step{}----", step);
+        disp_eq("eqs:", &eqs);
+        dispv("rules:", &rules);
+
+        // 1 orient
+        // 1-1 順序つかないものを消す
+        let mut eqs_vec = Vec::from(eqs.clone());
+        eqs_vec.retain(|eq| {
+            analyse(eq.context.clone(), eq.names.clone(), &eq.left, &eq.right).is_some()
+        });
+        eqs = BinaryHeap::from(eqs_vec);
+        disp_eq("1-1 self.eqs:", &eqs);
+
+        // // 1-2 ひとつとりだす（変数も含めた項数が一番少ないもの）
+        if let Some(new_pair) = eqs.pop() {
+            println!("1-2 new_pair: {}", &new_pair);
+
+            // 2 compose
+            // 2-1 ルールそれぞれの後件を正規化する（新ルールを追加したルール群で）
+            let new_rule = analyse(
+                new_pair.context.clone(),
+                new_pair.names.clone(),
+                &new_pair.left,
+                &new_pair.right,
+            )
+            .unwrap();
+
+            next_eq_id += 1;
+
+            // 3 deduct
+            // 3-1 新ルールと他のルールに対して危険対作成（自分自身とも
+            let critical_pairs1 = rules.iter()
+                .map(|rule| find_critical_pairs(&new_rule, rule))
+                // .inspect(|cps| dispv("find_cps:", cps))
+                ;
+            let critical_pair_self = new_rule.find_critical_pairs_with_self();
+            // .iter()
+            // .map(|cp| cp.refresh_vars());
+            let mut new_pairs_3_1 = critical_pairs1.flatten().collect::<Vec<_>>();
+            new_pairs_3_1.extend(critical_pair_self);
+            let new_pairs_3_1 = new_pairs_3_1
+                .iter()
+                .map(|cp| cp.refresh_vars())
+                .collect::<Vec<_>>();
+            dispv("3-1 critical pairs:", &new_pairs_3_1);
+
+            // 3-2 両辺が同じか、入れ替えただけのペアを消す
+            dispv("3-2 new_pairs before:", &new_pairs_3_1);
+            let new_pairs_3_2 = new_pairs_3_1
+                .iter()
+                .enumerate()
+                .filter(|(i, pair1)| {
+                    new_pairs_3_1.iter().enumerate().all(|(j, pair2)| {
+                        if i < &j {
+                            let pair1_p = pair1.p_term().refresh_vars();
+                            let pair1_q = pair1.q_term().refresh_vars();
+                            let pair2_p = pair2.p_term().refresh_vars();
+                            let pair2_q = pair2.q_term().refresh_vars();
+
+                            !((pair1_p.inner == pair2_q.inner && pair1_q.inner == pair2_p.inner)
+                                || (pair1_p.inner == pair2_p.inner
+                                    && pair1_q.inner == pair2_q.inner))
+                        } else {
+                            true
+                        }
+                    })
+                })
+                .map(|(_, p)| p.clone())
+                .collect::<Vec<_>>();
+            dispv("3-2 new_pairs after:", &new_pairs_3_2);
+
+            // 3-3 等式に合体
+            let new_eqs = new_pairs_3_2
+                .iter()
+                .map(|pair| {
+                    // let res = Equation(next_eq_id, pair.2.clone(), pair.3.clone(), (pair.0, pair.1));
+                    let res = Equation {
+                        context: pair.context.clone(),
+                        names: pair.names.clone(),
+                        left: pair.p.clone(),
+                        right: pair.q.clone(),
+                    };
+                    next_eq_id += 1;
+                    res
+                })
+                .collect::<Vec<_>>();
+            eqs.extend(new_eqs);
+            disp_eq("3-3 self.eqs after:", &eqs);
+
+            // 4 collapse
+            // 4-1 ルールそれぞれが新ルールに当てはまるか確かめて、当てはまるものは消す
+            dispv("4-1 rules before:", &rules);
+            // rules.retain(|r| reduxes_in(r.s.clone(), &new_rule).is_empty() );
+            rules.retain(|rule| rule.before().find_redexes_from(&new_rule).is_empty());
+            dispv("4-1 rules after:", &rules);
+
+            // 5 join
+            // 5-1 ルールに新ルール追加
+            rules.push(new_rule);
+            disp_rl2("5-1 rules:", &rules);
+
+            // 6 simplify
+            // 6-1 新ルールリストで等式内をすべて正規化
+            disp_eq("6-1 eqs before:", &eqs);
+            let mut new_eqs_6 = eqs
+                .iter()
+                .map(|eq| Equation {
+                    context: eq.context.clone(),
+                    names: eq.names.clone(),
+                    left: eq.left_term().normalize2(&rules).inner.clone(),
+                    right: eq.right_term().normalize2(&rules).inner.clone(),
+                })
+                .collect::<Vec<_>>();
+            dispv("6-1 eqs after:", &new_eqs_6);
+
+            // 7 delete
+            // 7-1 等式のうち、両辺が同じものを消す
+            new_eqs_6.retain(|eq| eq.left != eq.right);
+            dispv("7-1 eqs:", &new_eqs_6);
+
+            //             // 両辺を入れ替えただけのものが等式内にあれば消す
+            //             let new_eqs_7 = new_eqs_6.clone();
+            //             let new_pairs_7_2 = new_eqs_7.iter().enumerate().filter(|(i, pair1)| {
+            //                 new_eqs_6.iter().enumerate().all(|(j, pair2)| {
+            //                     if i < &j {
+            //                         let pair1_p = pair1.left_term().refresh_vars();
+            //                         let pair1_q = pair1.right_term().refresh_vars();
+            //                         let pair2_p = pair2.left_term().refresh_vars();
+            //                         let pair2_q = pair2.right_term().refresh_vars();
+
+            //                         !(
+            //                             (pair1_p.inner == pair2_q.inner && pair1_q.inner == pair2_p.inner) ||
+            //                             (pair1_p.inner == pair2_p.inner && pair1_q.inner == pair2_q.inner)
+            //                         )
+            //                     } else {
+            //                         true
+            //                     }
+            //                 })
+            //             }).map(|(_,p)|p.clone()).collect::<Vec<_>>();
+            // dispv("7-2 eqs:", &new_pairs_7_2);
+            // eqs = BinaryHeap::from(new_pairs_7_2);
+
+            eqs = BinaryHeap::from(new_eqs_6);
+        }
+
+        step += 1;
+    }
+    dbg!(step);
+    rules
+}
+
+pub fn disp_eq(title: &str, eqs: &BinaryHeap<Equation>) {
+    println!("{} [", title);
+    eqs.iter().for_each(|item| {
+        println!("    {}", item);
+    });
+    println!("]");
+}
+
+#[allow(unused)]
+pub fn disp_rl2(title: &str, rules: &Vec<Rule>) {
+    println!("{} [", title);
+    rules.iter().for_each(|item| {
+        println!("    {}", item);
+    });
+    println!("]");
+}
 
 pub fn complete(eqs: &Vec<Equation>, limit: usize) -> BinaryHeap<Rule> {
     let mut rules = eqs
@@ -45,19 +219,31 @@ pub fn complete(eqs: &Vec<Equation>, limit: usize) -> BinaryHeap<Rule> {
             rules.push(new_rule.clone());
         });
 
-        critical_pairs = critical_pairs.iter().enumerate().filter(|(i, pair1)| {
-            critical_pairs.iter().enumerate().all(|(j, pair2)| {
-                if i < &j {
-                    !(pair1.p == pair2.q && pair1.q == pair2.p || 
-                        pair1.p == pair2.p && pair1.q == pair2.q
-                    )
-                } else {
-                    true
-                }
-            })
-        }).map(|(_,p)|p.clone()).collect::<BinaryHeap<_>>();
-
         println!("NUMBER: {}", i);
+        println!("before: ");
+        dispv_cp(&critical_pairs);
+        critical_pairs = critical_pairs
+            .iter()
+            .enumerate()
+            .filter(|(i, pair1)| {
+                critical_pairs.iter().enumerate().all(|(j, pair2)| {
+                    if i < &j {
+                        let pair1_p = pair1.p_term().normalize(&rules);
+                        let pair1_q = pair1.q_term().normalize(&rules);
+                        let pair2_p = pair2.p_term().normalize(&rules);
+                        let pair2_q = pair2.q_term().normalize(&rules);
+
+                        !((pair1_p == pair2_q && pair1_q == pair2_p)
+                            || (pair1_p == pair2_p && pair1_q == pair2_q))
+                    } else {
+                        true
+                    }
+                })
+            })
+            .map(|(_, p)| p.clone())
+            .collect::<BinaryHeap<_>>();
+
+        println!("after : ");
         dispv_cp(&critical_pairs);
         disp_rl(&rules);
         i = i + 1;
@@ -165,7 +351,13 @@ pub fn eqs() -> Vec<Equation> {
 
 #[cfg(test)]
 mod tests {
-    use crate::completion::{complete, eqs};
+    use crate::completion::{complete, complete2, eqs};
+
+    #[test]
+    fn test_complete2() {
+        let eqs_bh = std::collections::BinaryHeap::from(eqs());
+        let _rules = complete2(eqs_bh, 4);
+    }
 
     #[test]
     fn test_complete() {

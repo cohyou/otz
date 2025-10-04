@@ -77,6 +77,7 @@ impl TermInner {
 
 /// innerの中の変数varをtermに置き換える
 pub fn substitute_inner(inner: Rc<TermInner>, var: &Var, term: Rc<TermInner>) -> Rc<TermInner> {
+    // println!("{:?} {:?}", inner, var);
     match (inner.as_ref(), var) {
         (TermInner::Var(vid), Var::Id(v)) if vid == v => term,
         (TermInner::RuledVar(vid, rid, kind), Var::Ruled(v, r, k))
@@ -142,13 +143,28 @@ fn replace_term_inner(
         }
     }
 }
+
 #[cfg(test)]
 mod tests {
     use crate::{
-        context_table::CtxtTable, id::OperId, parser::term::terminner::oper::terminner_parser,
-        symbol_table::SymbolTable,
+        context_table::CtxtTable, id::{OperId, VarId}, parser::term::terminner::oper::terminner_parser, subst::{Subst}, symbol_table::SymbolTable, util::{opers, tm, types}
     };
     use rstest::*;
+
+    #[test]
+    fn test_substitute_inner2() {
+        let types = types(vec!["Int"]);
+        let opers = opers(vec!["plus", "minus"]);
+        let ctxts = CtxtTable::new();
+        let term = tm("x y z: Int | plus![plus![z y] x]", &types, &opers, &ctxts);
+        let subst = vec![
+            (1, VarId(1)),
+            (0, VarId(2)),
+            (2, VarId(0)),
+        ];
+        println!("start : {:?}", term.inner);
+        println!("result: {:?}", term.inner.substitute(&Subst::from(subst)));
+    }
 
     #[rstest]
     #[case("x1")]

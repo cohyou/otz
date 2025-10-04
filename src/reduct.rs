@@ -5,7 +5,7 @@ use std::{
 
 use crate::{
     completion::complete,
-    critical_pairs::prepare_rules,
+    critical_pairs::{prepare_rules, prepare_rules2},
     equation::Equation,
     instance::Instance,
     rule::Rule,
@@ -45,6 +45,20 @@ impl Term {
         let mut term = Rc::new(self.clone());
         loop {
             let result = reduct(term.clone(), rules);
+            // println!("result: {} term: {}", result, term);
+            if result == term {
+                break;
+            }
+            // println!("REDUCED {} -> {}", term, result);
+            term = result
+        }
+        // println!("normalized: {}", &term);
+        term
+    }
+    pub fn normalize2(&self, rules: &Vec<Rule>) -> Rc<Term> {
+        let mut term = Rc::new(self.clone());
+        loop {
+            let result = reduct2(term.clone(), rules);
             // println!("result: {} term: {}", result, term);
             if result == term {
                 break;
@@ -110,10 +124,34 @@ pub fn reduct(term: Rc<Term>, rules: &BinaryHeap<Rule>) -> Rc<Term> {
     redex.apply()
 }
 
+pub fn reduct2(term: Rc<Term>, rules: &Vec<Rule>) -> Rc<Term> {
+    let prepared_rules = prepare_rules2(rules)
+        .iter()
+        .map(|rule| rule.make_vars_ruled(crate::rule::RuleKind::NotSet))
+        .collect::<Vec<_>>(); // dbg!(&prepared_rules);
+    let redexes = prepared_rules
+        .iter()
+        .map(|rule| term.find_redexes_from(rule))
+        .flatten()
+        .collect::<Vec<_>>();
+
+    // crate::util::dispv(&redexes);
+
+    if redexes.is_empty() {
+        return term.clone();
+    }
+
+    // TODO: ひとまず戦略は後で考える
+    let redex = &redexes[0];
+
+    // 置き換え後の項を作成する
+    redex.apply()
+}
+
 impl Term {
     /// まず、とある項`self`があり、規則`rule:before->after`があるとする。
     /// `self`の部分項のうち、`σ(before)`と一致するような`σ`が存在するようなものを探す。
-    fn find_redexes_from(&self, rule: &Rule) -> Vec<Redex> {
+    pub fn find_redexes_from(&self, rule: &Rule) -> Vec<Redex> {
         // println!("find_redexes_from self: {} rule: {}", self, rule);
         self.subterms()
             // .inspect(|subterm| {
@@ -522,7 +560,7 @@ mod tests {
             ],
         )
     }
-    
+
     // fn rule3() -> Vec<Rule> {
     //     let types = types(vec!["Int"]);
     //     let opers = opers(vec!["plus", "minus"]);

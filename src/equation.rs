@@ -4,7 +4,7 @@ use crate::context::Context;
 use crate::symbol_table::Names;
 use crate::term::{Term, TermInner};
 
-#[derive(PartialEq, Clone)]
+#[derive(Clone)]
 pub struct Equation {
     pub context: Rc<Context>,
     pub names: Rc<Names>,
@@ -26,11 +26,32 @@ impl std::fmt::Display for Equation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Eq<{} | {} = {}>",
-            self.context,
+            "Eq<{} = {}>",
+            // self.context,
             self.left_term(),
             self.right_term()
         )
+    }
+}
+
+impl std::cmp::PartialEq for Equation {
+    fn eq(&self, other: &Self) -> bool {
+        self.left == other.left && self.right == other.right
+    }
+}
+
+impl std::cmp::Eq for Equation {}
+
+impl std::cmp::PartialOrd for Equation {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        (std::cmp::max(other.left.var_size(), other.right.var_size()))
+            .partial_cmp(std::cmp::max(&self.left.var_size(), &self.right.var_size()))
+    }
+}
+
+impl std::cmp::Ord for Equation {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.partial_cmp(other).unwrap()
     }
 }
 

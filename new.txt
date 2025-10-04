@@ -1,0 +1,366 @@
+NUMBER: 1
+--- 2 CPs [
+    < plus![0 y] | plus![minus!x plus![x y]] >
+    < plus![plus![x plus![y z]] v3] | plus![plus![x y] plus![z v3]] >
+] ---
+--- 3 rules [
+    Rule< plus![0 x] -> x >
+    Rule< plus![minus!x x] -> 0 >
+    Rule< plus![plus![x y] z] -> plus![x plus![y z]] >
+] ---
+NUMBER: 2
+--- 6 CPs [
+    < plus![minus!0 x] | x >
+    < plus![minus!plus![x y] plus![x plus![y z]]] | z >
+    < plus![minus!minus!x 0] | x >
+    < plus![plus![x plus![y z]] v3] | plus![plus![x y] plus![z v3]] >
+    < plus![y z] | plus![minus!x plus![plus![x y] z]] >
+    < plus![minus!minus!x y] | plus![x y] >
+] ---
+--- 4 rules [
+    Rule< plus![0 x] -> x >
+    Rule< plus![minus!x x] -> 0 >
+    Rule< plus![plus![x y] z] -> plus![x plus![y z]] >
+    Rule< plus![minus!x plus![x y]] -> y >
+] ---
+NUMBER: 3
+--- 7 CPs [
+    < plus![minus!minus!x 0] | x >
+    < plus![minus!plus![x y] plus![x plus![y z]]] | z >
+    < plus![minus!minus!x y] | plus![x y] >
+    < plus![plus![x plus![y z]] v3] | plus![plus![x y] plus![z v3]] >
+    < plus![y z] | plus![minus!x plus![plus![x y] z]] >
+    < plus![x y] | plus![minus!0 plus![x y]] >
+    < plus![minus!minus!0 x] | x >
+] ---
+--- 5 rules [
+    Rule< plus![0 x] -> x >
+    Rule< plus![minus!x x] -> 0 >
+    Rule< plus![plus![x y] z] -> plus![x plus![y z]] >
+    Rule< plus![minus!x plus![x y]] -> y >
+    Rule< plus![minus!0 x] -> x >
+] ---
+NUMBER: 4
+--- 8 CPs [
+    < plus![minus!minus!x y] | plus![x y] >
+    < plus![minus!plus![x y] plus![x plus![y z]]] | z >
+    < plus![minus!minus!0 x] | x >
+    < plus![minus!minus!minus!x x] | 0 >
+    < plus![y z] | plus![minus!x plus![plus![x y] z]] >
+    < plus![x y] | plus![minus!0 plus![x y]] >
+    < plus![x y] | plus![minus!minus!x plus![0 y]] >
+    < plus![plus![x plus![y z]] v3] | plus![plus![x y] plus![z v3]] >
+] ---
+--- 6 rules [
+    Rule< plus![0 x] -> x >
+    Rule< plus![minus!x x] -> 0 >
+    Rule< plus![plus![x y] z] -> plus![x plus![y z]] >
+    Rule< plus![minus!x plus![x y]] -> y >
+    Rule< plus![minus!0 x] -> x >
+    Rule< plus![minus!minus!x 0] -> x >
+] ---
+NUMBER: 5
+--- 12 CPs [
+    < plus![x 0] | x >
+    < 0 | plus![x minus!x] >
+    < plus![x plus![minus!x y]] | y >
+    < plus![minus!minus!0 x] | x >
+    < plus![minus!minus!minus!x x] | 0 >
+    < plus![x y] | plus![minus!0 plus![x y]] >
+    < plus![plus![x y] z] | plus![minus!minus!x plus![y z]] >
+    < plus![y z] | plus![minus!x plus![plus![x y] z]] >
+    < plus![plus![x plus![y z]] v3] | plus![plus![x y] plus![z v3]] >
+    < plus![minus!minus!minus!x plus![x y]] | y >
+    < plus![x y] | plus![minus!minus!x plus![0 y]] >
+    < plus![minus!plus![x y] plus![x plus![y z]]] | z >
+] ---
+--- 7 rules [
+    Rule< plus![0 x] -> x >
+    Rule< plus![minus!x x] -> 0 >
+    Rule< plus![plus![x y] z] -> plus![x plus![y z]] >
+    Rule< plus![minus!x plus![x y]] -> y >
+    Rule< plus![minus!0 x] -> x >
+    Rule< plus![minus!minus!x 0] -> x >
+    Rule< plus![minus!minus!x y] -> plus![x y] >
+] ---
+NUMBER: 6
+--- 15 CPs [
+    < minus!minus!x | x >
+    < plus![x plus![minus!x y]] | y >
+    < 0 | plus![x minus!x] >
+    < minus!minus!x | plus![x 0] >
+    < plus![minus!minus!0 x] | x >
+    < 0 | minus!0 >
+    < plus![x y] | plus![minus!0 plus![x y]] >
+    < plus![plus![x y] z] | plus![minus!minus!x plus![y z]] >
+    < plus![x y] | plus![x plus![y 0]] >
+    < plus![y z] | plus![minus!x plus![plus![x y] z]] >
+    < plus![x y] | plus![minus!minus!x plus![0 y]] >
+    < plus![plus![x plus![y z]] v3] | plus![plus![x y] plus![z v3]] >
+    < plus![minus!plus![x y] plus![x plus![y z]]] | z >
+    < plus![minus!minus!minus!x plus![x y]] | y >
+    < plus![minus!minus!minus!x x] | 0 >
+] ---
+--- 8 rules [
+    Rule< plus![0 x] -> x >
+    Rule< plus![x 0] -> x >
+    Rule< plus![plus![x y] z] -> plus![x plus![y z]] >
+    Rule< plus![minus!x x] -> 0 >
+    Rule< plus![minus!0 x] -> x >
+    Rule< plus![minus!minus!x 0] -> x >
+    Rule< plus![minus!minus!x y] -> plus![x y] >
+    Rule< plus![minus!x plus![x y]] -> y >
+] ---
+NUMBER: 7
+--- 14 CPs [
+    < 0 | minus!0 >
+    < plus![x plus![minus!x y]] | y >
+    < plus![minus!minus!0 x] | x >
+    < plus![minus!plus![x y] plus![x plus![y z]]] | z >
+    < plus![x minus!x] | 0 >
+    < minus!minus!x | plus![x 0] >
+    < plus![x y] | plus![x plus![y 0]] >
+    < plus![y z] | plus![minus!x plus![plus![x y] z]] >
+    < plus![x y] | plus![minus!minus!x plus![0 y]] >
+    < plus![plus![x plus![y z]] v3] | plus![plus![x y] plus![z v3]] >
+    < plus![minus!minus!minus!x x] | 0 >
+    < plus![minus!minus!minus!x plus![x y]] | y >
+    < plus![x y] | plus![minus!0 plus![x y]] >
+    < plus![plus![x y] z] | plus![minus!minus!x plus![y z]] >
+] ---
+--- 9 rules [
+    Rule< plus![0 x] -> x >
+    Rule< plus![x 0] -> x >
+    Rule< plus![plus![x y] z] -> plus![x plus![y z]] >
+    Rule< minus!minus!x -> x >
+    Rule< plus![minus!0 x] -> x >
+    Rule< plus![minus!minus!x 0] -> x >
+    Rule< plus![minus!minus!x y] -> plus![x y] >
+    Rule< plus![minus!x plus![x y]] -> y >
+    Rule< plus![minus!x x] -> 0 >
+] ---
+NUMBER: 8
+--- 15 CPs [
+    < plus![x plus![minus!x y]] | y >
+    < plus![x minus!x] | 0 >
+    < minus!0 | 0 >
+    < plus![minus!plus![x y] plus![x plus![y z]]] | z >
+    < plus![minus!minus!minus!x x] | 0 >
+    < minus!minus!x | plus![x 0] >
+    < plus![minus!minus!0 x] | x >
+    < plus![y z] | plus![minus!x plus![plus![x y] z]] >
+    < plus![x y] | plus![minus!minus!x plus![0 y]] >
+    < plus![plus![x plus![y z]] v3] | plus![plus![x y] plus![z v3]] >
+    < plus![plus![x y] z] | plus![minus!minus!x plus![y z]] >
+    < plus![minus!minus!minus!x plus![x y]] | y >
+    < plus![x y] | plus![minus!0 plus![x y]] >
+    < plus![x y] | plus![x plus![y 0]] >
+    < plus![minus!0 0] | 0 >
+] ---
+--- 10 rules [
+    Rule< plus![0 x] -> x >
+    Rule< plus![x 0] -> x >
+    Rule< plus![plus![x y] z] -> plus![x plus![y z]] >
+    Rule< minus!minus!x -> x >
+    Rule< plus![minus!0 x] -> x >
+    Rule< plus![minus!minus!x 0] -> x >
+    Rule< plus![minus!minus!x y] -> plus![x y] >
+    Rule< plus![minus!x plus![x y]] -> y >
+    Rule< plus![minus!x x] -> 0 >
+    Rule< minus!0 -> 0 >
+] ---
+NUMBER: 9
+--- 17 CPs [
+    < minus!0 | 0 >
+    < plus![x minus!x] | 0 >
+    < plus![minus!minus!0 x] | x >
+    < plus![minus!minus!minus!x x] | 0 >
+    < minus!minus!x | plus![x 0] >
+    < plus![x y] | plus![x plus![y 0]] >
+    < plus![y z] | plus![minus!x plus![plus![x y] z]] >
+    < plus![y z] | plus![x plus![plus![minus!x y] z]] >
+    < plus![plus![x y] z] | plus![minus!minus!x plus![y z]] >
+    < plus![minus!minus!minus!x plus![x y]] | y >
+    < plus![x y] | plus![minus!0 plus![x y]] >
+    < plus![minus!0 0] | 0 >
+    < plus![minus!plus![x y] plus![x plus![y z]]] | z >
+    < z | plus![x plus![y plus![minus!plus![x y] z]]] >
+    < plus![x y] | plus![minus!minus!x plus![0 y]] >
+    < plus![x plus![minus!minus!minus!x y]] | y >
+    < plus![plus![x plus![y z]] v3] | plus![plus![x y] plus![z v3]] >
+] ---
+--- 11 rules [
+    Rule< plus![0 x] -> x >
+    Rule< plus![x 0] -> x >
+    Rule< plus![plus![x y] z] -> plus![x plus![y z]] >
+    Rule< minus!minus!x -> x >
+    Rule< plus![minus!0 x] -> x >
+    Rule< plus![minus!minus!x 0] -> x >
+    Rule< plus![minus!minus!x y] -> plus![x y] >
+    Rule< plus![minus!x plus![x y]] -> y >
+    Rule< plus![minus!x x] -> 0 >
+    Rule< minus!0 -> 0 >
+    Rule< plus![x plus![minus!x y]] -> y >
+] ---
+NUMBER: 10
+--- 16 CPs [
+    < plus![x minus!x] | 0 >
+    < minus!minus!x | plus![x 0] >
+    < plus![minus!minus!0 x] | x >
+    < plus![minus!minus!minus!x x] | 0 >
+    < plus![x y] | plus![minus!0 plus![x y]] >
+    < plus![x y] | plus![x plus![y 0]] >
+    < plus![y z] | plus![minus!x plus![plus![x y] z]] >
+    < plus![y z] | plus![x plus![plus![minus!x y] z]] >
+    < plus![plus![x y] z] | plus![minus!minus!x plus![y z]] >
+    < plus![minus!minus!minus!x plus![x y]] | y >
+    < plus![plus![x plus![y z]] v3] | plus![plus![x y] plus![z v3]] >
+    < plus![minus!0 0] | 0 >
+    < plus![minus!plus![x y] plus![x plus![y z]]] | z >
+    < z | plus![x plus![y plus![minus!plus![x y] z]]] >
+    < plus![x y] | plus![minus!minus!x plus![0 y]] >
+    < plus![x plus![minus!minus!minus!x y]] | y >
+] ---
+--- 11 rules [
+    Rule< plus![0 x] -> x >
+    Rule< plus![x 0] -> x >
+    Rule< plus![plus![x y] z] -> plus![x plus![y z]] >
+    Rule< minus!minus!x -> x >
+    Rule< plus![minus!0 x] -> x >
+    Rule< plus![minus!minus!x 0] -> x >
+    Rule< plus![minus!minus!x y] -> plus![x y] >
+    Rule< plus![minus!x plus![x y]] -> y >
+    Rule< plus![minus!x x] -> 0 >
+    Rule< minus!0 -> 0 >
+    Rule< plus![x plus![minus!x y]] -> y >
+] ---
+NUMBER: 11
+--- 17 CPs [
+    < plus![minus!minus!0 x] | x >
+    < minus!minus!x | plus![x 0] >
+    < plus![x y] | plus![x plus![y 0]] >
+    < plus![minus!minus!minus!x x] | 0 >
+    < plus![x y] | plus![minus!0 plus![x y]] >
+    < plus![minus!plus![x y] plus![x plus![y z]]] | z >
+    < plus![y z] | plus![minus!x plus![plus![x y] z]] >
+    < plus![y z] | plus![x plus![plus![minus!x y] z]] >
+    < plus![minus!minus!minus!x plus![x y]] | y >
+    < plus![plus![x plus![y z]] v3] | plus![plus![x y] plus![z v3]] >
+    < plus![minus!0 0] | 0 >
+    < plus![x plus![minus!minus!minus!x y]] | y >
+    < z | plus![x plus![y plus![minus!plus![x y] z]]] >
+    < plus![x y] | plus![minus!minus!x plus![0 y]] >
+    < 0 | plus![x plus![y minus!plus![x y]]] >
+    < plus![plus![x y] z] | plus![minus!minus!x plus![y z]] >
+    < 0 | plus![x minus!minus!minus!x] >
+] ---
+--- 12 rules [
+    Rule< plus![0 x] -> x >
+    Rule< plus![x 0] -> x >
+    Rule< plus![x minus!x] -> 0 >
+    Rule< minus!minus!x -> x >
+    Rule< plus![minus!0 x] -> x >
+    Rule< plus![plus![x y] z] -> plus![x plus![y z]] >
+    Rule< plus![minus!minus!x y] -> plus![x y] >
+    Rule< plus![minus!x plus![x y]] -> y >
+    Rule< plus![minus!x x] -> 0 >
+    Rule< minus!0 -> 0 >
+    Rule< plus![x plus![minus!x y]] -> y >
+    Rule< plus![minus!minus!x 0] -> x >
+] ---
+NUMBER: 12
+--- 16 CPs [
+    < plus![x y] | plus![x plus![y 0]] >
+    < minus!minus!x | plus![x 0] >
+    < plus![y z] | plus![minus!x plus![plus![x y] z]] >
+    < plus![minus!minus!minus!x x] | 0 >
+    < plus![x y] | plus![minus!0 plus![x y]] >
+    < plus![minus!plus![x y] plus![x plus![y z]]] | z >
+    < 0 | plus![x plus![y minus!plus![x y]]] >
+    < plus![y z] | plus![x plus![plus![minus!x y] z]] >
+    < plus![minus!minus!minus!x plus![x y]] | y >
+    < plus![plus![x plus![y z]] v3] | plus![plus![x y] plus![z v3]] >
+    < plus![minus!0 0] | 0 >
+    < plus![x plus![minus!minus!minus!x y]] | y >
+    < z | plus![x plus![y plus![minus!plus![x y] z]]] >
+    < plus![x y] | plus![minus!minus!x plus![0 y]] >
+    < 0 | plus![x minus!minus!minus!x] >
+    < plus![plus![x y] z] | plus![minus!minus!x plus![y z]] >
+] ---
+--- 12 rules [
+    Rule< plus![0 x] -> x >
+    Rule< plus![x 0] -> x >
+    Rule< plus![x minus!x] -> 0 >
+    Rule< minus!minus!x -> x >
+    Rule< plus![minus!0 x] -> x >
+    Rule< plus![plus![x y] z] -> plus![x plus![y z]] >
+    Rule< plus![minus!minus!x y] -> plus![x y] >
+    Rule< plus![minus!x plus![x y]] -> y >
+    Rule< plus![minus!x x] -> 0 >
+    Rule< minus!0 -> 0 >
+    Rule< plus![x plus![minus!x y]] -> y >
+    Rule< plus![minus!minus!x 0] -> x >
+] ---
+NUMBER: 13
+--- 15 CPs [
+    < minus!minus!x | plus![x 0] >
+    < plus![x y] | plus![minus!0 plus![x y]] >
+    < plus![y z] | plus![minus!x plus![plus![x y] z]] >
+    < plus![minus!minus!minus!x x] | 0 >
+    < plus![minus!0 0] | 0 >
+    < plus![minus!plus![x y] plus![x plus![y z]]] | z >
+    < 0 | plus![x plus![y minus!plus![x y]]] >
+    < plus![y z] | plus![x plus![plus![minus!x y] z]] >
+    < plus![minus!minus!minus!x plus![x y]] | y >
+    < plus![plus![x plus![y z]] v3] | plus![plus![x y] plus![z v3]] >
+    < plus![plus![x y] z] | plus![minus!minus!x plus![y z]] >
+    < plus![x plus![minus!minus!minus!x y]] | y >
+    < z | plus![x plus![y plus![minus!plus![x y] z]]] >
+    < plus![x y] | plus![minus!minus!x plus![0 y]] >
+    < 0 | plus![x minus!minus!minus!x] >
+] ---
+--- 12 rules [
+    Rule< plus![0 x] -> x >
+    Rule< plus![x 0] -> x >
+    Rule< plus![x minus!x] -> 0 >
+    Rule< minus!minus!x -> x >
+    Rule< plus![minus!0 x] -> x >
+    Rule< plus![plus![x y] z] -> plus![x plus![y z]] >
+    Rule< plus![minus!minus!x y] -> plus![x y] >
+    Rule< plus![minus!x plus![x y]] -> y >
+    Rule< plus![minus!x x] -> 0 >
+    Rule< minus!0 -> 0 >
+    Rule< plus![x plus![minus!x y]] -> y >
+    Rule< plus![minus!minus!x 0] -> x >
+] ---
+NUMBER: 14
+--- 14 CPs [
+    < plus![y z] | plus![minus!x plus![plus![x y] z]] >
+    < plus![x y] | plus![minus!0 plus![x y]] >
+    < 0 | plus![x plus![y minus!plus![x y]]] >
+    < plus![minus!minus!minus!x x] | 0 >
+    < plus![minus!0 0] | 0 >
+    < plus![minus!plus![x y] plus![x plus![y z]]] | z >
+    < 0 | plus![x minus!minus!minus!x] >
+    < plus![y z] | plus![x plus![plus![minus!x y] z]] >
+    < plus![minus!minus!minus!x plus![x y]] | y >
+    < plus![plus![x plus![y z]] v3] | plus![plus![x y] plus![z v3]] >
+    < plus![plus![x y] z] | plus![minus!minus!x plus![y z]] >
+    < plus![x plus![minus!minus!minus!x y]] | y >
+    < z | plus![x plus![y plus![minus!plus![x y] z]]] >
+    < plus![x y] | plus![minus!minus!x plus![0 y]] >
+] ---
+--- 12 rules [
+    Rule< plus![0 x] -> x >
+    Rule< plus![x 0] -> x >
+    Rule< plus![x minus!x] -> 0 >
+    Rule< minus!minus!x -> x >
+    Rule< plus![minus!0 x] -> x >
+    Rule< plus![plus![x y] z] -> plus![x plus![y z]] >
+    Rule< plus![minus!minus!x y] -> plus![x y] >
+    Rule< plus![minus!x plus![x y]] -> y >
+    Rule< plus![minus!x x] -> 0 >
+    Rule< minus!0 -> 0 >
+    Rule< plus![x plus![minus!x y]] -> y >
+    Rule< plus![minus!minus!x 0] -> x >
+] ---

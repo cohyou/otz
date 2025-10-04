@@ -8,19 +8,6 @@ pub fn analyse(
     left: &Rc<TermInner>,
     right: &Rc<TermInner>,
 ) -> Option<Rule> {
-    // 1-1 順序つかないものを消す
-    // let mut eqs = Vec::from(self.eqs.clone());
-    // eqs.retain(|Equation(_,t1,t2,_)| {
-    //     analyse2(t1.clone(), t2.clone()) || analyse2(t2.clone(), t1.clone())
-    // });
-
-    // 2-1 ルールそれぞれの後件を正規化する（新ルールを追加したルール群で）
-    // let new_rule = if analyse2(new_pair.1.clone(), new_pair.2.clone()) {
-    //     Rule::new(next_eq_id, new_pair.1, new_pair.2, (0, 0))
-    // } else {
-    //     Rule::new(next_eq_id, new_pair.2, new_pair.1, (0, 0))
-    // };
-
     // println!("left: {:?} right: {:?}", left, right);
 
     analyse_inner(left, right).map(|cmp| {
@@ -70,6 +57,17 @@ impl TermInner {
             &TermInner::Int(_) | TermInner::Str(_) => 1,
             &TermInner::Fun(_, args) => 1 + args.iter().map(|inner| inner.size()).sum::<usize>(),
             &TermInner::Subst(_, inner) => inner.size(),
+        }
+    }
+    pub fn var_size(&self) -> usize {
+        // 含まれる変数の数
+        match &self {
+            &TermInner::Var(_) | TermInner::RuledVar(_, _, _) => 1,
+            &TermInner::Int(_) | TermInner::Str(_) => 0,
+            &TermInner::Fun(_, args) => {
+                1 + args.iter().map(|inner| inner.var_size()).sum::<usize>()
+            }
+            &TermInner::Subst(_, inner) => inner.var_size(),
         }
     }
 }

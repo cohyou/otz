@@ -23,7 +23,8 @@ pub struct CriticalPair {
 
 impl std::cmp::PartialOrd for CriticalPair {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        (other.p.size() + other.q.size()).partial_cmp(&(self.p.size() + self.q.size()))
+        (std::cmp::max(other.p.var_size(), other.q.var_size()))
+            .partial_cmp(std::cmp::max(&self.p.var_size(), &self.q.var_size()))
     }
 }
 impl std::cmp::Ord for CriticalPair {
@@ -64,6 +65,14 @@ impl std::fmt::Display for CriticalPair {
 }
 
 pub fn prepare_rules(rules: &BinaryHeap<Rule>) -> Vec<Rule> {
+    rules
+        .iter()
+        .enumerate()
+        .map(|(idx, rule)| prepare_rule(rule, idx))
+        .collect()
+}
+
+pub fn prepare_rules2(rules: &Vec<Rule>) -> Vec<Rule> {
     rules
         .iter()
         .enumerate()
@@ -136,6 +145,7 @@ pub fn make_critical_pair_set(rules: &BinaryHeap<Rule>) -> Vec<CriticalPair> {
 /// rule2とrule1との互いの危険対を探す
 /// rule2とrule2・rule1とrule1の組み合わせは探さない
 pub fn find_critical_pairs(rule1: &Rule, rule2: &Rule) -> Vec<CriticalPair> {
+    // println!("rule1: {} rule2: {}", rule1, rule2);
     let rule1 = prepare_rule(rule1, 1).make_vars_ruled(RuleKind::NotSet);
     let rule2 = prepare_rule(rule2, 2).make_vars_ruled(RuleKind::NotSet);
 
@@ -200,16 +210,22 @@ mod tests {
         util::{opers, rl, types},
     };
 
-    #[test]
-    fn test_find_critical_pairs() {
+    #[rstest]
+    #[case(
+        "x y: Int | plus![minus!x plus![x y]] -> y",
+        "x: Int | plus![minus!x x] -> 0"
+    )]
+    #[case(
+        "x z: Int | plus![minus!x plus![x z]] -> z",
+        "x: Int | plus![0 x] -> x"
+    )]
+    fn test_find_critical_pairs(#[case] r1: &str, #[case] r2: &str) {
         let types = types(vec!["Int"]);
         let opers = opers(vec!["plus", "minus"]);
         let ctxts = CtxtTable::new();
 
-        let input_rule1 = "x y: Int | plus![minus!x plus![x y]] -> y";
-        let input_rule2 = "x: Int | plus![minus!x x] -> 0";
-        let rule1 = rl(input_rule1, &types, &opers, &ctxts);
-        let rule2 = rl(input_rule2, &types, &opers, &ctxts);
+        let rule1 = rl(r1, &types, &opers, &ctxts);
+        let rule2 = rl(r2, &types, &opers, &ctxts);
 
         let r = find_critical_pairs(&rule1, &rule2);
         dbg!(r);
