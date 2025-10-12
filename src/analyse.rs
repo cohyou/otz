@@ -1,27 +1,70 @@
+// use core::panic;
 use std::{cmp::Ordering, rc::Rc};
 
-use crate::{context::Context, rule::Rule, symbol_table::Names, term::TermInner};
+use crate::{context::Context, rule::Rule, subst::Var, symbol_table::Names, term::{TermInner}};
+
+// enum PartialOrdering {
+//     Greater,
+//     Less,
+//     Equal,
+//     Incomparable,
+// }
 
 pub fn analyse(
     context: Rc<Context>,
     names: Rc<Names>,
-    left: &Rc<TermInner>,
-    right: &Rc<TermInner>,
+    left: Rc<TermInner>,
+    right: Rc<TermInner>,
 ) -> Option<Rule> {
-    // println!("left: {:?} right: {:?}", left, right);
+    // println!("analyse left: {:?} right: {:?}", left, right);
 
-    analyse_inner(left, right).map(|cmp| {
-        if cmp {
-            // left > right
-            Rule::new(context, names, left.clone(), right.clone())
-        } else {
-            // left < right
-            Rule::new(context, names, right.clone(), left.clone())
-        }
-    })
+    // analyse_inner(left.clone(), right.clone()).map(|cmp| {
+    //     if cmp {
+    //         // left > right
+    //         Rule::new(context, names, left.clone(), right.clone())
+    //     } else {
+    //         // left < right
+    //         Rule::new(context, names, right.clone(), left.clone())
+    //     }
+    // })
+
+    if lpo_gr(left.clone(), right.clone()) {
+        // left > right
+        Some(Rule::new(context, names, left.clone(), right.clone()))
+    } else {
+        // left < right
+        Some(Rule::new(context, names, right.clone(), left.clone()))
+    }
 }
 
-fn analyse_inner(t1: &Rc<TermInner>, t2: &Rc<TermInner>) -> Option<bool> {
+// fn analyse_rpo(_t1: Rc<TermInner>, _t2: Rc<TermInner>) -> PartialOrdering {
+//     PartialOrdering::Incomparable
+    // match (t1.as_ref(), t2.as_ref()) {
+    //     (TermInner::Fun(f1, args1), TermInner::Fun(f2, args2)) => {
+    //         match f1.cmp(f2) {
+    //             Ordering::Greater => Some(true), // f1 > f2
+    //             Ordering::Less => Some(false),   // f1 < f2
+    //             Ordering::Equal => {
+    //                 if args1.len() != args2.len() {
+    //                     panic!("args1.len() != args2.len()");
+    //                 }
+    //                 for (arg1, arg2) in args1.iter().zip(args2) {
+    //                     match analyse_rpo(arg1, arg2) {
+    //                         Some(true) => return Some(true),
+    //                         Some(false) => return Some(false),
+    //                         None => continue,
+    //                     }
+    //                 }
+    //                 None
+    //             }
+    //         }
+    //     }
+    //     _ => unimplemented!(),
+    // }
+// }
+
+#[allow(dead_code)]
+fn analyse_inner(t1: Rc<TermInner>, t2: Rc<TermInner>) -> Option<bool> {
     // まず、項のサイズを比較する
     // 一緒なら、関数のIDを比較する
     // 同じ関数なら、1つ目の引数同士を比較する
@@ -34,14 +77,14 @@ fn analyse_inner(t1: &Rc<TermInner>, t2: &Rc<TermInner>) -> Option<bool> {
                     match f.cmp(g) {
                         Ordering::Greater => Some(true), // f > g
                         Ordering::Less => Some(false),   // f < g
-                        Ordering::Equal => analyse_inner(&args_f[0], &args_g[0]),
+                        Ordering::Equal => analyse_inner(args_f[0].clone(), args_g[0].clone()),
                     }
                 }
                 (TermInner::Int(_), TermInner::Fun(_, _)) => Some(false),
                 // (TermInner::Var(_), TermInner::RuledVar(_, _, _)) => false,
                 // (TermInner::RuledVar(_,_,_), TermInner::Var(_)) => true,
                 _ => {
-                    /*println!("t1: {:?} t2: {:?}", t1, t2);*/
+                    println!("t1: {:?} t2: {:?}", t1, t2);
                     None
                 }
             }
@@ -72,85 +115,76 @@ impl TermInner {
     }
 }
 
-// fn lpo_gr(t1: Rc<TermInner>, t2: Rc<TermInner>) -> bool {
-//     lpo_gr_eq(t1.clone(), t2.clone()) && !lpo_gr_eq(t2, t1)
-// }
+fn lpo_gr(t1: Rc<TermInner>, t2: Rc<TermInner>) -> bool {
+    lpo_gr_eq(t1.clone(), t2.clone()) && !lpo_gr_eq(t2.clone(), t1.clone())
+}
 
-// fn lpo_gr_eq(t1: Rc<TermInner>, t2: Rc<TermInner>) -> bool {
-//     match (t1.as_ref(), t2.as_ref()) {
-//         (t, TermInner::Var(xi)) => occur(xi, t),
-//         (TermInner::Var(_), _) => false,
-//         (TermInner::Fun(f1, args1), TermInner::Fun(f2, args2)) => {
-//             (
-//                 f1 == f2 &&
-//                 lex_gr_eq(lpo_gr_eq, args1.clone(), args2.clone()) &&
-//                 args2.iter().all(|arg2| lpo_gr_eq(t1.clone(), arg2.clone()) )
-//             ) ||
-//             (
-//                 f1 > f2 &&
-//                 args2.iter().all(|arg2| lpo_gr(t1.clone(), arg2.clone()))
-//             ) ||
-//             args1.iter().any(|arg1| lpo_gr_eq(arg1.clone(), t2.clone()))
-//         }
-//         _ => unimplemented!()
-//     }
-// }
-// fn occur(_v: &VarId, _t: &TermInner) -> bool { false }
+fn lpo_gr_eq(t1: Rc<TermInner>, t2: Rc<TermInner>) -> bool {
+    // println!("lpo_gr_eq: t1: {:?}, t2: {:?}", t1, t2);
+    match (t1.as_ref(), t2.as_ref()) {
+        (t, TermInner::Var(xi)) => occur(&Var::Id(xi.clone()), t),
+        (t, TermInner::RuledVar(xi, rid, kind)) => occur(&Var::Ruled(xi.clone(), *rid, kind.clone()), t),
+        (TermInner::Var(_), _) | (TermInner::RuledVar(_, _, _), _) => false,
+        (TermInner::Fun(f1, args1), TermInner::Fun(f2, args2)) => {
+            (
+                f1 == f2 &&
+                lex_gr_eq(lpo_gr_eq, args1.clone(), args2.clone()) &&
+                args2.iter().all(|arg2| lpo_gr_eq(t1.clone(), arg2.clone()) )
+            ) ||
+            (
+                f1 > f2 &&
+                args2.iter().all(|arg2| lpo_gr(t1.clone(), arg2.clone()))
+            ) ||
+            args1.iter().any(|arg1| lpo_gr_eq(arg1.clone(), t2.clone()))
+        }
+        _ => unimplemented!()
+    }
+}
 
-// fn lex_gr_eq(gr_eq: fn(Rc<TermInner>, Rc<TermInner>) -> bool, ts1: Vec<Rc<TermInner>>, ts2: Vec<Rc<TermInner>>) -> bool {
-//     match ts1.cmp(&ts2) {
-//         Ordering::Greater => true,
-//         Ordering::Less => false,
-//         Ordering::Equal => {
-//             for (x, y) in ts1.iter().zip(&ts2) {
-//                 if gr_eq(x.clone(), y.clone()) && !gr_eq(y.clone(), x.clone()) {
-//                     return true;
-//                 } else if !(gr_eq(x.clone(), y.clone()) && gr_eq(y.clone(), x.clone())) {
-//                     return false;
-//                 }
-//             }
-//             true
-//         }
-//     }
-// }
+/// 変数vが項tに含まれるか
+fn occur(v: &Var, t: &TermInner) -> bool {
+    t.vars().contains(&v.clone())
+}
+
+fn lex_gr_eq(gr_eq: fn(Rc<TermInner>, Rc<TermInner>) -> bool, ts1: Vec<Rc<TermInner>>, ts2: Vec<Rc<TermInner>>) -> bool {
+    match ts1.cmp(&ts2) {
+        Ordering::Greater => true,
+        Ordering::Less => false,
+        Ordering::Equal => {
+            for (x, y) in ts1.iter().zip(&ts2) {
+                if gr_eq(x.clone(), y.clone()) && !gr_eq(y.clone(), x.clone()) {
+                    return true;
+                } else if !(gr_eq(x.clone(), y.clone()) && gr_eq(y.clone(), x.clone())) {
+                    return false;
+                }
+            }
+            true
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
-    use combine::Parser;
     use rstest::*;
-
+    use crate::util::{eq, opers, types};
     use crate::{
         analyse::analyse,
         context_table::CtxtTable,
-        id::{OperId, TypeId},
-        parser::equation::equation_parser,
-        symbol_table::SymbolTable,
     };
 
     #[rstest]
-    #[case("x: Int | plus![0 x] = x")]
-    #[case("x: Int | plus![minus!x x] = 0")]
-    #[case("x: Int y: Int z: Int | plus![x plus![y z]] = plus![plus![x y] z]")]
+    #[case("x: Int | p![o; x] = x")]
+    #[case("x: Int | p![m!x x] = o;")]
+    #[case("x y z: Int | p![x p![y z]] = p![p![x y] z]")]
+    #[case("x y: Int | m!p![x y] = p![m!x m!y]")]
     fn test_analyse(#[case] input: &str) {
-        use std::rc::Rc;
-
-        let types = SymbolTable::<TypeId>::new();
-        types.assign("Int".to_string());
-        let opers = SymbolTable::<OperId>::new();
-        opers.assign("plus".to_string());
-        opers.assign("minus".to_string());
+        let types = types(vec!["Int"]);
+        let opers = opers(vec!["o", "p", "m"]);
         let ctxts = CtxtTable::new();
-        ctxts.assign_to_current("x".to_string());
 
-        let eq = equation_parser(&types, &opers, &ctxts)
-            .parse(input)
-            .unwrap()
-            .0;
-        dbg!(&eq);
-        let mut names = ctxts.current_var_table();
-        let oper_names = opers.current_table();
-        names.extend(oper_names);
-        let rule = analyse(eq.context, Rc::new(names), &eq.left, &eq.right);
-        dbg!(&rule);
+        let equation = eq(input, &types, &opers, &ctxts);
+        dbg!(&equation);
+        let rule = analyse(equation.context, equation.names, equation.left, equation.right);
+        println!("{}", rule.unwrap());
     }
 }

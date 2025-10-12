@@ -24,7 +24,7 @@ pub fn complete2(mut eqs: BinaryHeap<Equation>, max: usize) -> Vec<Rule> {
         // 1-1 順序つかないものを消す
         let mut eqs_vec = Vec::from(eqs.clone());
         eqs_vec.retain(|eq| {
-            analyse(eq.context.clone(), eq.names.clone(), &eq.left, &eq.right).is_some()
+            analyse(eq.context.clone(), eq.names.clone(), eq.left.clone(), eq.right.clone()).is_some()
         });
         eqs = BinaryHeap::from(eqs_vec);
         disp_eq("1-1 self.eqs:", &eqs);
@@ -38,8 +38,8 @@ pub fn complete2(mut eqs: BinaryHeap<Equation>, max: usize) -> Vec<Rule> {
             let new_rule = analyse(
                 new_pair.context.clone(),
                 new_pair.names.clone(),
-                &new_pair.left,
-                &new_pair.right,
+                new_pair.left,
+                new_pair.right,
             )
             .unwrap();
 
@@ -187,7 +187,7 @@ pub fn disp_rl2(title: &str, rules: &Vec<Rule>) {
 pub fn complete(eqs: &Vec<Equation>, limit: usize) -> BinaryHeap<Rule> {
     let mut rules = eqs
         .iter()
-        .filter_map(|eq| analyse(eq.context.clone(), eq.names.clone(), &eq.left, &eq.right))
+        .filter_map(|eq| analyse(eq.context.clone(), eq.names.clone(), eq.left.clone(), eq.right.clone()))
         .collect::<BinaryHeap<_>>();
     let critical_pairs = make_critical_pair_set(&rules)
         .iter()
@@ -276,8 +276,8 @@ impl CriticalPair {
                 analyse(
                     self.context.clone(),
                     self.names.clone(),
-                    &normal_p.inner,
-                    &normal_q.inner,
+                    normal_p.inner.clone(),
+                    normal_q.inner.clone(),
                 )
                 .map(|r| {
                     let new_rule = r.refresh_vars();
@@ -337,12 +337,12 @@ pub fn disp_rl(vec: &BinaryHeap<Rule>) {
 
 pub fn eqs() -> Vec<Equation> {
     let types = types(vec!["Int"]);
-    let opers = opers(vec!["plus", "minus"]);
+    let opers = opers(vec!["o", "p", "m"]);
     let ctxts = CtxtTable::new();
 
-    let input_rule1 = "x: Int | plus![0 x] = x";
-    let input_rule2 = "x: Int | plus![minus!x x] = 0";
-    let input_rule3 = "x: Int y: Int z: Int | plus![plus![x y] z] = plus![x plus![y z]]";
+    let input_rule1 = "x: Int | p![o; x] = x";
+    let input_rule2 = "x: Int | p![m!x x] = o;";
+    let input_rule3 = "x y z: Int | p![p![x y] z] = p![x p![y z]]";
     let eq1 = eq(input_rule1, &types, &opers, &ctxts);
     let eq2 = eq(input_rule2, &types, &opers, &ctxts);
     let eq3 = eq(input_rule3, &types, &opers, &ctxts);

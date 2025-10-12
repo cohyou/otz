@@ -49,10 +49,12 @@ impl Term {
             if result == term {
                 break;
             }
-            // println!("REDUCED {} -> {}", term, result);
+            println!("REDUCED {} -> {}", term, result);
             term = result
         }
-        // println!("normalized: {}", &term);
+        if term.as_ref() != self {
+            println!("NORMALIZED: {}", &term);
+        }
         term
     }
     pub fn normalize2(&self, rules: &Vec<Rule>) -> Rc<Term> {
@@ -63,10 +65,12 @@ impl Term {
             if result == term {
                 break;
             }
-            // println!("REDUCED {} -> {}", term, result);
+            println!("REDUCED {} -> {}", term, result);
             term = result
         }
-        // println!("normalized: {}", &term);
+        if term.as_ref() != self {
+            println!("NORMALIZED: {}", &term);
+        }
         term
     }
 }

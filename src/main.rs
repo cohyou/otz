@@ -58,7 +58,7 @@ fn comp2() {
     use crate::completion::complete2;
     use crate::completion::eqs;
     let eqs_bh = std::collections::BinaryHeap::from(eqs());
-    let rules = complete2(eqs_bh, 0);
+    let rules = complete2(eqs_bh, 200);
     crate::util::dispv("result:", &rules);
 }
 
