@@ -64,18 +64,11 @@ impl std::fmt::Display for CriticalPair {
     }
 }
 
-pub fn prepare_rules(rules: &BinaryHeap<Rule>) -> Vec<Rule> {
-    rules
-        .iter()
-        .enumerate()
-        .map(|(idx, rule)| prepare_rule(rule, idx))
-        .collect()
-}
-
-pub fn prepare_rules2(rules: &Vec<Rule>) -> Vec<Rule> {
-    rules
-        .iter()
-        .enumerate()
+pub fn prepare_rules<'a, C>(rules: &'a C) -> Vec<Rule>
+where
+    &'a C: IntoIterator<Item=&'a Rule>
+{
+    rules.into_iter().enumerate()
         .map(|(idx, rule)| prepare_rule(rule, idx))
         .collect()
 }

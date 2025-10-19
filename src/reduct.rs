@@ -1,11 +1,11 @@
 use std::{
-    collections::{BinaryHeap, HashMap},
+    collections::HashMap,
     rc::Rc,
 };
 
 use crate::{
     completion::complete,
-    critical_pairs::{prepare_rules, prepare_rules2},
+    critical_pairs::prepare_rules,
     equation::Equation,
     instance::Instance,
     rule::Rule,
@@ -17,8 +17,7 @@ use crate::{
 impl Instance {
     pub fn deducible(&self, eq: &Equation) -> bool {
         // TODO: 本来はSchemaのconstraintsも必要
-        // let eqs = self.data.iter().map(Equation::to_rule).collect();
-        let eqs = &self.data;
+        let eqs = self.data.clone();
         let rules = complete(eqs, 0);
         eq.is_reducible(&rules)
     }
@@ -35,13 +34,13 @@ impl Equation {
         )
     }
 
-    fn is_reducible(&self, rules: &BinaryHeap<Rule>) -> bool {
+    fn is_reducible(&self, rules: &Vec<Rule>) -> bool {
         self.left_term().normalize(rules) == self.right_term().normalize(rules)
     }
 }
 
 impl Term {
-    pub fn normalize(&self, rules: &BinaryHeap<Rule>) -> Rc<Term> {
+    pub fn normalize<'a>(&self, rules: &Vec<Rule>) -> Rc<Term> {
         let mut term = Rc::new(self.clone());
         loop {
             let result = reduct(term.clone(), rules);
@@ -49,28 +48,12 @@ impl Term {
             if result == term {
                 break;
             }
-            println!("REDUCED {} -> {}", term, result);
+            // println!("REDUCED {} -> {}", term, result);
             term = result
         }
-        if term.as_ref() != self {
-            println!("NORMALIZED: {}", &term);
-        }
-        term
-    }
-    pub fn normalize2(&self, rules: &Vec<Rule>) -> Rc<Term> {
-        let mut term = Rc::new(self.clone());
-        loop {
-            let result = reduct2(term.clone(), rules);
-            // println!("result: {} term: {}", result, term);
-            if result == term {
-                break;
-            }
-            println!("REDUCED {} -> {}", term, result);
-            term = result
-        }
-        if term.as_ref() != self {
-            println!("NORMALIZED: {}", &term);
-        }
+        // if term.as_ref() != self {
+        //     println!("NORMALIZED: {}", &term);
+        // }
         term
     }
 }
@@ -104,32 +87,8 @@ impl Redex {
     }
 }
 
-pub fn reduct(term: Rc<Term>, rules: &BinaryHeap<Rule>) -> Rc<Term> {
+pub fn reduct(term: Rc<Term>, rules: &Vec<Rule>) -> Rc<Term> {
     let prepared_rules = prepare_rules(rules)
-        .iter()
-        .map(|rule| rule.make_vars_ruled(crate::rule::RuleKind::NotSet))
-        .collect::<Vec<_>>(); // dbg!(&prepared_rules);
-    let redexes = prepared_rules
-        .iter()
-        .map(|rule| term.find_redexes_from(rule))
-        .flatten()
-        .collect::<Vec<_>>();
-
-    // crate::util::dispv(&redexes);
-
-    if redexes.is_empty() {
-        return term.clone();
-    }
-
-    // TODO: ひとまず戦略は後で考える
-    let redex = &redexes[0];
-
-    // 置き換え後の項を作成する
-    redex.apply()
-}
-
-pub fn reduct2(term: Rc<Term>, rules: &Vec<Rule>) -> Rc<Term> {
-    let prepared_rules = prepare_rules2(rules)
         .iter()
         .map(|rule| rule.make_vars_ruled(crate::rule::RuleKind::NotSet))
         .collect::<Vec<_>>(); // dbg!(&prepared_rules);
@@ -358,7 +317,7 @@ mod tests {
         let ctxts = CtxtTable::new();
 
         let term = tm(input, &types, &opers, &ctxts);
-        let normalized = term.normalize(&rules.into());
+        let normalized = term.normalize(&rules);
         println!("normalized: {}", normalized);
     }
 
@@ -378,7 +337,7 @@ mod tests {
         let ctxts = CtxtTable::new();
 
         let term = tm(input, &types, &opers, &ctxts);
-        let reducted = reduct(Rc::new(term), &rules.into());
+        let reducted = reduct(Rc::new(term), &rules);
         println!("reducted: {}", reducted);
     }
 
@@ -438,7 +397,7 @@ mod tests {
         };
         let rule = rl(rule_input, &types, &opers, &ctxts);
         let rule =
-            &prepare_rules(&vec![rule].into())[0].make_vars_ruled(crate::rule::RuleKind::NotSet);
+            &prepare_rules(&vec![rule])[0].make_vars_ruled(crate::rule::RuleKind::NotSet);
         let redexes = subterm.find_redex_from(&rule);
         println!("redexes: {}", &redexes.unwrap());
     }
