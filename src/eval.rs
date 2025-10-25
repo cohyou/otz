@@ -22,17 +22,17 @@ use crate::{
 /// section 4.3.1.
 
 #[derive(Default)]
-pub struct Query(Vec<QueryEntity>);
+pub struct Query(pub Vec<QueryEntity>);
 
-#[derive(Default)]
-struct QueryEntity {
-    _entity: Vec<TypeId>,
-    fr: Vec<Context>,
-    wh: Vec<Equation>,
-    _att: Vec<(OperId, Term)>,
+#[derive(Default, Debug)]
+pub struct QueryEntity {
+    pub entity: Vec<TypeId>,
+    pub fr: Vec<Context>,
+    pub wh: Vec<Equation>,
+    pub att: Vec<(OperId, Term)>,
     // keys: t -> t'
     // transform from tableau for t' to tableau for t
-    _keys: Vec<(OperId, VarId, Term)>,
+    pub keys: Vec<(OperId, VarId, Term)>,
 }
 
 pub fn eval(instance: Instance, query: Query) -> Instance {
@@ -41,8 +41,8 @@ pub fn eval(instance: Instance, query: Query) -> Instance {
     // generator
     let _substs = query.0.iter().map(|query_entity| {
         eval_generators(&saturated, query_entity);
-    });
-
+    }).inspect(|subst| { dbg!(&subst); }).collect::<Vec<_>>();
+    
     // elementsをContextに変換してからInstanceに渡す
 
     // attの処理
@@ -68,15 +68,13 @@ fn eval_generators(instance: &Instance, query_entity: &QueryEntity) -> Vec<Subst
             let substs = instance
                 .elems
                 .0
-                .iter()
-                .filter_map(|e| {
+                .iter().filter_map(|e| {
                     // frからsubstを作る
                     let init = HashMap::new();
                     // for句のそれぞれのentityについて
                     let subst = context
                         .0
-                        .iter()
-                        .try_fold(init, |mut subst, (varid, tp)| {
+                        .iter().try_fold(init, |mut subst, (varid, tp)| {
                             (e.1 == tp).then(|| {
                                 subst.insert(
                                     Var::Id(varid.clone()),
@@ -86,9 +84,11 @@ fn eval_generators(instance: &Instance, query_entity: &QueryEntity) -> Vec<Subst
                             })
                         })
                         .map(|m| Subst::new(m));
+                    // dbg!(&subst);
                     subst
                 })
                 .collect::<Vec<_>>();
+            // dbg!(&substs);
 
             // 一回Vecにせずに繋げた方が効率的だが分かりやすさのため一時的にこうする
             let substs = substs
@@ -98,7 +98,8 @@ fn eval_generators(instance: &Instance, query_entity: &QueryEntity) -> Vec<Subst
                     query_entity.wh.iter().all(|eq| {
                         let left_substed = eq.left_term().substitute(&subst);
                         let right_substed = eq.right_term().substitute(&subst);
-
+                        // println!("left_substed: {}", left_substed);
+                        // println!("right_substed: {}", right_substed);
                         let substituted_equation = Equation {
                             context: left_substed.context,
                             names: left_substed.names,

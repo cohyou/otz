@@ -122,7 +122,7 @@ fn lpo_gr(t1: Rc<TermInner>, t2: Rc<TermInner>) -> bool {
 fn lpo_gr_eq(t1: Rc<TermInner>, t2: Rc<TermInner>) -> bool {
     // println!("lpo_gr_eq: t1: {:?}, t2: {:?}", t1, t2);
     match (t1.as_ref(), t2.as_ref()) {
-        (t, TermInner::Var(xi)) => occur(&Var::Id(xi.clone()), t),
+        (t, TermInner::Var(xi)) => !occur(&Var::Id(xi.clone()), t),
         (t, TermInner::RuledVar(xi, rid, kind)) => occur(&Var::Ruled(xi.clone(), *rid, kind.clone()), t),
         (TermInner::Var(_), _) | (TermInner::RuledVar(_, _, _), _) => false,
         (TermInner::Fun(f1, args1), TermInner::Fun(f2, args2)) => {
@@ -137,7 +137,18 @@ fn lpo_gr_eq(t1: Rc<TermInner>, t2: Rc<TermInner>) -> bool {
             ) ||
             args1.iter().any(|arg1| lpo_gr_eq(arg1.clone(), t2.clone()))
         }
-        _ => unimplemented!()
+        (TermInner::Fun(_, _), TermInner::Str(_)) => true,
+        (TermInner::Str(_), TermInner::Fun(_, _), ) => false,
+        (TermInner::Fun(_, _), TermInner::Int(_)) => true,
+        (TermInner::Int(_), TermInner::Fun(_, _), ) => false,
+        (TermInner::Str(_), TermInner::Str(_)) => false,  // 比較できないが。。
+        (TermInner::Int(_), TermInner::Int(_)) => false,  // 比較できないが。。
+        (TermInner::Str(_), TermInner::Int(_)) => false,  // 比較できないが。。
+        (TermInner::Int(_), TermInner::Str(_)) => false,  // 比較できないが。。
+        _ => {
+            dbg!(&t1, &t2);
+            unimplemented!();
+        }
     }
 }
 

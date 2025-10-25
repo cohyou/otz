@@ -11,13 +11,28 @@ use crate::{
     rule::Rule,
     subst::{Subst, Var},
     subterm::{Position, SubTerm},
-    term::{Term, TermInner},
+    term::{Term, TermInner}, util::dispv,
 };
 
 impl Instance {
     pub fn deducible(&self, eq: &Equation) -> bool {
         // TODO: 本来はSchemaのconstraintsも必要
-        let eqs = self.data.clone();
+        let eqs = self.data.iter().filter(|e| {
+            let e_tp = match e.left.as_ref() {
+                TermInner::Fun(operid, _) => {
+                    self.schema.fkeys.iter().find(|op| &op.id == operid).map(|oper| oper.cod.clone())
+                }
+                _ => unimplemented!()
+            };
+            let eq_tp = match eq.left.as_ref() {
+                TermInner::Fun(operid, _) => {
+                    self.schema.fkeys.iter().find(|op| &op.id == operid).map(|oper| oper.cod.clone())
+                }
+                _ => unimplemented!()
+            };
+            e_tp == eq_tp
+        }).cloned().collect::<Vec<_>>();
+        dispv("filtered_eqs:", &eqs);
         let rules = complete(eqs, 0);
         eq.is_reducible(&rules)
     }
@@ -35,7 +50,12 @@ impl Equation {
     }
 
     fn is_reducible(&self, rules: &Vec<Rule>) -> bool {
-        self.left_term().normalize(rules) == self.right_term().normalize(rules)
+        dispv("is_reducible rules:", rules);
+        // dbg!(rules);
+        let left = self.left_term().normalize(rules);
+        let right = self.right_term().normalize(rules);
+        println!("is_reducible {} ?? {}", left, right);
+        left == right
     }
 }
 

@@ -8,5 +8,5 @@
 #func false: 1 -> Bool
 #func true: 1 -> Bool
 
-#rule a: Bool | not![a] = a
-#rule a: Bool | and![false![] a] = not![a]
+#rule b: Bool | not!b = b
+#rule b: Bool | and![false; b] = not!b

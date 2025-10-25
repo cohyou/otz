@@ -44,6 +44,9 @@ impl Term {
             Int(i) => {
                 write!(f, "{}", i)
             }
+            Str(s) => {
+                write!(f, "{:?}", s)
+            }
             Var(vid) => {
                 let v = self
                     .names
@@ -129,7 +132,10 @@ impl Term {
                     write!(f, "")
                 }
             }
-            _ => unimplemented!(),
+            _ => {
+                dbg!(&inner);
+                unimplemented!();
+            },
         }
     }
 }

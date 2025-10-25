@@ -47,14 +47,14 @@ where
             match decl {
                 Decl::Schema(sch) => instance.schema = sch,
                 Decl::Elem(elems) => {
-                    dbg!(&elems);
+                    // dbg!(&elems);
                     instance.elems = Context(elems);
                     // instance.elems.extend_to_default(elem)
                 }
                 Decl::Data(eq) => instance.data.push(eq),
             }
         }
-        dbg!(&instance.elems);
+        // dbg!(&instance.elems);
         instance
     })
 }
