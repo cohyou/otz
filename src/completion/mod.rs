@@ -8,7 +8,12 @@ pub mod unify;
 
 use std::collections::BinaryHeap;
 
-use crate::{completion::analyse::analyse, completion::critical_pairs::{find_critical_pairs, CriticalPair}, equation::Equation, completion::rule::Rule, util::dispv};
+use crate::{
+    completion::analyse::analyse, completion::critical_pairs::{find_critical_pairs, CriticalPair}, equation::Equation, completion::rule::Rule,
+};
+
+#[allow(unused)]
+use crate::util::dispv;
 
 pub fn complete(eqs: Vec<Equation>, limit: usize) -> Vec<Rule> {
     let mut step = 1;
@@ -16,9 +21,9 @@ pub fn complete(eqs: Vec<Equation>, limit: usize) -> Vec<Rule> {
     let mut rules = vec![];
 
     while !eqs.is_empty() && (limit == 0 || step <= limit) {
-        dbg!(step);
+        // dbg!(step);
         let eq = eqs.pop().unwrap();
-        println!("POPED: {}", &eq);
+        // println!("POPED: {}", &eq);
         let (new_eqs, new_rules) = complete_inner(step, &eq, &mut rules);
 
         eqs.extend(new_eqs);
@@ -32,9 +37,9 @@ pub fn complete(eqs: Vec<Equation>, limit: usize) -> Vec<Rule> {
             eqs = new_eqs;
         }
 
-        if rules.len() != new_rules.len() {
-            dispv("rules:", &rules);
-        }
+        // if rules.len() != new_rules.len() {
+        //     dispv("rules:", &rules);
+        // }
         rules = new_rules;
         
         if rules.len() == 100 { panic!(); }
@@ -55,15 +60,13 @@ fn complete_inner(_step: usize, eq: &Equation, rules: &Vec<Rule>) -> (Vec<Equati
     let mut new_eqs = vec![];
     (left != right).then(|| {
         let new_rule = analyse(eq.context.clone(), eq.names.clone(), left.inner.clone(), right.inner.clone()).unwrap();
-        println!("new_rule: {}", new_rule);
+        // println!("new_rule: {}", new_rule);
 
         // α→βと既存rules内のrule毎の危険対の集合を作る
         let cps = rules.iter()
             .flat_map(|rule| find_critical_pairs(&new_rule, rule));
         // 新rule同士での危険対の有無を調べる
         let cps_self = new_rule.find_critical_pairs_with_self();
-
-
 
         let mut new_cps = cps.chain(cps_self).map(|cp| cp.refresh_vars())
         .map(|cp| {

@@ -31,10 +31,10 @@ fn main() {
 }
 
 mod qu {
-    use std::{collections::HashMap, rc::Rc};
-    use crate::{equation::Equation, id::{OperId, Symbol, VarId}, term::TermInner, r#type::Type};
+    use std::{collections::HashMap, rc::Rc, vec};
+    use crate::{equation::Equation, id::{OperId, Symbol, VarId}, term::TermInner};
     use crate::{context::Context, id::TypeId};
-    
+
     pub fn query() {
         use crate::parser::parse_instance;
         let path = "instance/i.instance";
@@ -53,7 +53,6 @@ mod qu {
 
         
     fn query_entity() -> crate::eval::QueryEntity {
-
         use crate::r#type::Type;
         crate::eval::QueryEntity {
             entity: vec![TypeId(5)],
@@ -76,16 +75,16 @@ mod qu {
         // let input = "e: Emp | wrk!e = d2";  // d2はVar11
         // eq(input, &types, &opers, &ctxts)
 
-        let mut ctxt = HashMap::new();
-        ctxt.insert(VarId(11), Type::Unary(TypeId(6)));
+        let ctxt = HashMap::new();
+        // ctxt.insert(VarId(11), Type::Unary(TypeId(6)));
         let mut names = HashMap::new();
         names.insert("e".to_string(), Symbol::Var(VarId(100)));
-        names.insert("d2".to_string(), Symbol::Var(VarId(11)));
+        names.insert("d2".to_string(), Symbol::Fun(OperId(21)));
         names.insert("wrk".to_string(), Symbol::Fun(OperId(8)));
         let left = TermInner::Fun(OperId(8), vec![
             Rc::new(TermInner::Var(VarId(100))),
         ]);
-        let right = TermInner::Var(VarId(11));
+        let right = TermInner::Fun(OperId(21), vec![]);
         Equation {
             context: Rc::new(Context(ctxt)),
             names: Rc::new(names),

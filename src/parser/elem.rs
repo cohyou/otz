@@ -29,7 +29,7 @@ where
                 let ename = ename.trim().to_string();
 
                 let id = opers.assign(ename);
-                let dom = Rc::new(Type::Unary(TypeId(1)));  // 1固定
+                let dom = Rc::new(Type::Unary(TypeId(4)));
                 let cod = Rc::new(t.clone());
                 Oper::new(id.clone(), dom, cod)
             }).collect::<Vec<Oper>>()

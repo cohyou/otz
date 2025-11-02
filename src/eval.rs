@@ -87,7 +87,7 @@ fn eval_generators(instance: &Instance, query_entity: &QueryEntity) -> Vec<Subst
                     subst
                 })
                 .collect::<Vec<_>>();
-            // dbg!(&substs);
+            dbg!(&substs);
 
             // 一回Vecにせずに繋げた方が効率的だが分かりやすさのため一時的にこうする
             let substs = substs

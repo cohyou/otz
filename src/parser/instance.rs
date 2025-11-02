@@ -39,7 +39,7 @@ where
                 Decl::Schema(sch) => instance.schema = sch,
                 Decl::Elem(elems) => {
                     // dbg!(&elems);
-                    instance.elems = elems;
+                    instance.elems.extend(elems);
                 }
                 Decl::Data(eq) => instance.data.push(eq),
             }
