@@ -9,7 +9,7 @@ use crate::{
     context_table::CtxtTable,
     id::{OperId, TypeId},
     parser::{context::context_parser, term::terminner::oper::terminner_parser},
-    rule::Rule,
+    completion::rule::Rule,
     symbol_table::SymbolTable,
 };
 

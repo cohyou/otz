@@ -3,7 +3,7 @@ use crate::{
     equation::Equation,
     id::{OperId, TypeId},
     parser::{equation::equation_parser, rule::rule_parser, term::term_parser},
-    rule::Rule,
+    completion::rule::Rule,
     symbol_table::SymbolTable,
     term::Term,
 };

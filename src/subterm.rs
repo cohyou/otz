@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use crate::{
-    subst::Var,
+    completion::subst::Var,
     term::{Term, TermInner},
 };
 

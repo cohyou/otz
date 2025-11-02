@@ -5,11 +5,11 @@ use std::{
 
 use crate::{
     completion::complete,
-    critical_pairs::prepare_rules,
+    completion::critical_pairs::prepare_rules,
     equation::Equation,
     instance::Instance,
-    rule::Rule,
-    subst::{Subst, Var},
+    completion::rule::Rule,
+    completion::subst::{Subst, Var},
     subterm::{Position, SubTerm},
     term::{Term, TermInner}, util::dispv,
 };
@@ -110,7 +110,7 @@ impl Redex {
 pub fn reduct(term: Rc<Term>, rules: &Vec<Rule>) -> Rc<Term> {
     let prepared_rules = prepare_rules(rules)
         .iter()
-        .map(|rule| rule.make_vars_ruled(crate::rule::RuleKind::NotSet))
+        .map(|rule| rule.make_vars_ruled(crate::completion::rule::RuleKind::NotSet))
         .collect::<Vec<_>>(); // dbg!(&prepared_rules);
     let redexes = prepared_rules
         .iter()
@@ -316,7 +316,7 @@ mod tests {
     use crate::context_table::CtxtTable;
     use crate::parser::term::term_parser;
     use crate::reduct::reduct;
-    use crate::rule::Rule;
+    use crate::completion::rule::Rule;
     use crate::util::{opers, rules, tm, types};
 
     #[rstest]
@@ -400,7 +400,7 @@ mod tests {
         #[case] rule_input: &str,
     ) {
         use crate::{
-            critical_pairs::prepare_rules,
+            completion::critical_pairs::prepare_rules,
             subterm::SubTerm,
             util::{rl, tm},
         };
@@ -417,7 +417,7 @@ mod tests {
         };
         let rule = rl(rule_input, &types, &opers, &ctxts);
         let rule =
-            &prepare_rules(&vec![rule])[0].make_vars_ruled(crate::rule::RuleKind::NotSet);
+            &prepare_rules(&vec![rule])[0].make_vars_ruled(crate::completion::rule::RuleKind::NotSet);
         let redexes = subterm.find_redex_from(&rule);
         println!("redexes: {}", &redexes.unwrap());
     }

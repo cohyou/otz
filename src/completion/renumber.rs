@@ -1,7 +1,7 @@
 use std::{collections::HashMap, rc::Rc};
 
 use crate::{
-    critical_pairs::CriticalPair, equation::Equation, id::VarId, rule::{Rule, RuleKind}, subst::{Subst, Var}, term::{Term, TermInner}
+    completion::critical_pairs::CriticalPair, equation::Equation, id::VarId, completion::rule::{Rule, RuleKind}, completion::subst::{Subst, Var}, term::{Term, TermInner}
 };
 
 impl Term {

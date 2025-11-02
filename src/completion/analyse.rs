@@ -1,7 +1,7 @@
 // use core::panic;
 use std::{cmp::Ordering, rc::Rc};
 
-use crate::{context::Context, rule::Rule, subst::Var, symbol_table::Names, term::{TermInner}};
+use crate::{context::Context, completion::rule::Rule, completion::subst::Var, symbol_table::Names, term::{TermInner}};
 
 // enum PartialOrdering {
 //     Greater,
@@ -179,7 +179,7 @@ mod tests {
     use rstest::*;
     use crate::util::{eq, opers, types};
     use crate::{
-        analyse::analyse,
+        completion::analyse::analyse,
         context_table::CtxtTable,
     };
 

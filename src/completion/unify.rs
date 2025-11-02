@@ -2,8 +2,8 @@ use std::{collections::HashMap, rc::Rc};
 
 use crate::{
     id::VarId,
-    rule::RuleKind,
-    subst::{Subst, Var},
+    completion::rule::RuleKind,
+    completion::subst::{Subst, Var},
     term::{Term, TermInner},
 };
 
@@ -17,14 +17,14 @@ pub fn unify(s: Rc<Term>, t: Rc<Term>) -> Option<Subst> {
         (rv1 @ RuledVar(_, _, _), rv2 @ RuledVar(_, _, _)) if rv1 == rv2 => Some(Subst::default()),
         (RuledVar(vid, rid, kind), u) => (!is_subterm_of2(vid, rid, kind, t.as_ref())).then_some(
             HashMap::from([(
-                crate::subst::Var::Ruled(vid.clone(), *rid, kind.clone()),
+                crate::completion::subst::Var::Ruled(vid.clone(), *rid, kind.clone()),
                 Rc::new(u.clone()),
             )])
             .into(),
         ),
         (u, RuledVar(vid, rid, kind)) => (!is_subterm_of2(vid, rid, kind, s.as_ref())).then_some(
             HashMap::from([(
-                crate::subst::Var::Ruled(vid.clone(), *rid, kind.clone()),
+                crate::completion::subst::Var::Ruled(vid.clone(), *rid, kind.clone()),
                 Rc::new(u.clone()),
             )])
             .into(),
@@ -38,10 +38,10 @@ pub fn unify(s: Rc<Term>, t: Rc<Term>) -> Option<Subst> {
         // s,tのどちらかが変数
         // 変数をx, 他の項をuとする
         (Var(x), u) => (!is_subterm_of(x, t.as_ref())).then_some(
-            HashMap::from([(crate::subst::Var::Id(x.clone()), Rc::new(u.clone()))]).into(),
+            HashMap::from([(crate::completion::subst::Var::Id(x.clone()), Rc::new(u.clone()))]).into(),
         ),
         (u, Var(x)) => (!is_subterm_of(x, s.as_ref())).then_some(
-            HashMap::from([(crate::subst::Var::Id(x.clone()), Rc::new(u.clone()))]).into(),
+            HashMap::from([(crate::completion::subst::Var::Id(x.clone()), Rc::new(u.clone()))]).into(),
         ),
 
         // s,tが関数
@@ -218,10 +218,10 @@ mod tests {
         context_table::CtxtTable,
         id::{OperId, VarId},
         parser::term::terminner::oper::terminner_parser,
-        subst::{Subst, Var},
+        completion::subst::{Subst, Var},
         symbol_table::SymbolTable,
         term::Term,
-        unify::unify,
+        completion::unify::unify,
         util::{opers, tm, types},
     };
 
@@ -235,43 +235,6 @@ mod tests {
         let result = unify(s, t);
         dbg!(&result);
     }
-
-    // use crate::term::TermInner;
-    // fn unifing1() -> (Rc<TermInner>, Rc<TermInner>) {
-    //     use std::rc::Rc;
-
-    //     use crate::id::{OperId};
-    //     // use crate::util::vars;
-    //     use crate::rule::RuleKind;
-    //     // plus![minus!x/1 plus![x/1 z/2]] -> z/2
-    //     let var_x_1 = Rc::new(TermInner::RuledVar(VarId(0), 1, RuleKind::Set1));
-    //     let var_z_1 = Rc::new(TermInner::RuledVar(VarId(2), 2, RuleKind::Set1));
-    //     let var_x_2 = Rc::new(TermInner::RuledVar(VarId(0), 1, RuleKind::Set2));
-    //     let var_z_2 = Rc::new(TermInner::RuledVar(VarId(2), 2, RuleKind::Set2));
-    //     let s = Rc::new(TermInner::Fun(OperId(1), vec![var_x_1.clone(), var_z_1.clone()]));
-    //     let t = Rc::new(TermInner::Fun(OperId(1), vec![
-    //         Rc::new(TermInner::Fun(OperId(2), vec![var_x_2.clone()])),
-    //         Rc::new(TermInner::Fun(OperId(1), vec![var_x_2.clone(), var_z_2.clone()]))
-    //     ]));
-    //     (s, t)
-    // }
-
-    // fn unifing2() -> (Rc<TermInner>, Rc<TermInner>) {
-    //     use std::rc::Rc;
-
-    //     use crate::id::{OperId};
-    //     // use crate::util::vars;
-    //     // use crate::rule::RuleKind;
-    //     // plus![minus!x/1 plus![x/1 z/2]] -> z/2
-    //     let var_x = Rc::new(TermInner::Var(VarId(0)));
-    //     let var_z = Rc::new(TermInner::Var(VarId(2)));
-    //     let s = Rc::new(TermInner::Fun(OperId(1), vec![var_x.clone(), var_z.clone()]));
-    //     let t = Rc::new(TermInner::Fun(OperId(1), vec![
-    //         Rc::new(TermInner::Fun(OperId(2), vec![var_x.clone()])),
-    //         s.clone()
-    //     ]));
-    //     (s, t)
-    // }
 
     fn unifing3() -> (Rc<Term>, Rc<Term>) {
         let types = types(vec!["Int"]);

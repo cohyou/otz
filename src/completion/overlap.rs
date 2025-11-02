@@ -2,12 +2,12 @@ use std::rc::Rc;
 
 use crate::{
     context::Context,
-    rule::Rule,
-    subst::Subst,
+    completion::rule::Rule,
+    completion::subst::Subst,
     subterm::{Position, SubTerm},
     symbol_table::Names,
     term::{Term, TermInner},
-    unify::unify,
+    completion::unify::unify,
 };
 
 #[derive(Debug)]
@@ -102,8 +102,8 @@ mod tests {
     use crate::{
         context_table::CtxtTable,
         id::VarId,
-        overlap::{check_overlap_inner, Overlap},
-        rule::{Rule, RuleKind},
+        completion::overlap::{check_overlap_inner, Overlap},
+        completion::rule::{Rule, RuleKind},
         util::{opers, tm, types},
     };
 

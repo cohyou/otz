@@ -3,7 +3,7 @@ use std::rc::Rc;
 use crate::{
     context::Context,
     id::{OperId, Symbol, VarId},
-    rule::{RuleId, RuleKind},
+    completion::rule::{RuleId, RuleKind},
     symbol_table::Names,
 };
 type Link<T> = std::rc::Rc<T>;

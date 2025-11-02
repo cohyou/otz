@@ -3,7 +3,7 @@ use std::{collections::HashMap, rc::Rc};
 use crate::{
     id::VarId,
     reduct::Redex,
-    rule::{RuleId, RuleKind},
+    completion::rule::{RuleId, RuleKind},
     subterm::Position,
     term::{Term, TermInner},
 };
@@ -147,7 +147,7 @@ fn replace_term_inner(
 #[cfg(test)]
 mod tests {
     use crate::{
-        context_table::CtxtTable, id::{OperId, VarId}, parser::term::terminner::oper::terminner_parser, subst::{Subst}, symbol_table::SymbolTable, util::{opers, tm, types}
+        context_table::CtxtTable, id::{OperId, VarId}, parser::term::terminner::oper::terminner_parser, completion::subst::{Subst}, symbol_table::SymbolTable, util::{opers, tm, types}
     };
     use rstest::*;
 
@@ -176,7 +176,7 @@ mod tests {
 
         use crate::{
             id::VarId,
-            subst::{Subst, Var},
+            completion::subst::{Subst, Var},
         };
 
         let opers = SymbolTable::<OperId>::new();

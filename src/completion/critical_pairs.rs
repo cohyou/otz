@@ -6,9 +6,9 @@ use std::{
 use crate::{
     context::Context,
     id::VarId,
-    overlap::Overlap,
-    rule::{Rule, RuleKind},
-    subst::{Subst, Var},
+    completion::overlap::Overlap,
+    completion::rule::{Rule, RuleKind},
+    completion::subst::{Subst, Var},
     symbol_table::Names,
     term::{Term, TermInner},
 };
@@ -197,9 +197,9 @@ mod tests {
 
     use crate::{
         context_table::CtxtTable,
-        critical_pairs::{find_critical_pairs, make_critical_pair_set},
+        completion::critical_pairs::{find_critical_pairs, make_critical_pair_set},
         parser::rule::rule_parser,
-        rule::{Rule, RuleKind},
+        completion::rule::{Rule, RuleKind},
         util::{opers, rl, types},
     };
 
@@ -230,7 +230,7 @@ mod tests {
     fn test_make_critical_pair_set(#[case] input: &str) {
         use crate::{
             context_table::CtxtTable,
-            critical_pairs::make_critical_pair_set,
+            completion::critical_pairs::make_critical_pair_set,
             parser::rule::rule_parser,
             util::{opers, types},
         };

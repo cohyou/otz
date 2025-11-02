@@ -1,6 +1,14 @@
+pub mod analyse;
+pub mod critical_pairs;
+pub mod overlap;
+pub mod renumber;
+pub mod rule;
+pub mod subst;
+pub mod unify;
+
 use std::collections::BinaryHeap;
 
-use crate::{analyse::analyse, critical_pairs::{find_critical_pairs, CriticalPair}, equation::Equation, rule::Rule, util::dispv};
+use crate::{completion::analyse::analyse, completion::critical_pairs::{find_critical_pairs, CriticalPair}, equation::Equation, completion::rule::Rule, util::dispv};
 
 pub fn complete(eqs: Vec<Equation>, limit: usize) -> Vec<Rule> {
     let mut step = 1;

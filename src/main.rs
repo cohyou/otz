@@ -1,23 +1,23 @@
 extern crate combine;
 
-mod analyse;
+
 mod completion;
 mod context;
-mod critical_pairs;
+
 mod equation;
 mod id;
 mod oper;
-mod overlap;
+
 mod reduct;
-mod renumber;
-mod rule;
+
+
 mod saturate;
-mod subst;
+
 mod subterm;
 mod term;
 mod theory;
 mod r#type;
-mod unify;
+
 
 pub mod context_table;
 pub mod eval;

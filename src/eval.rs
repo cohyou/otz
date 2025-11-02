@@ -5,7 +5,7 @@ use crate::{
     equation::Equation,
     id::{OperId, TypeId, VarId},
     instance::Instance,
-    subst::{Subst, Var},
+    completion::subst::{Subst, Var},
     term::{Term, TermInner},
 };
 
