@@ -1,4 +1,5 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use std::{
+    collections::HashMap, rc::Rc};
 
 use combine::{
     parser::char::{spaces, string},
@@ -6,17 +7,11 @@ use combine::{
 };
 
 use crate::{
-    context::Context,
-    context_table::CtxtTable,
-    equation::Equation,
-    id::{OperId, VarId},
-    parser::{term::terminner::oper::terminner_parser, DIRECTIVE_SIGN},
-    r#type::Type,
-    symbol_table::SymbolTable,
+    context::Context, context_table::CtxtTable, equation::Equation, id::{OperId}, 
+    parser::{DIRECTIVE_SIGN, term::terminner::oper::terminner_parser}, symbol_table::SymbolTable,
 };
 
 pub fn data_decl_parser<'a, Input>(
-    elems: &'a RefCell<HashMap<VarId, Type>>,
     ctxts: &'a CtxtTable,
     opers: &'a SymbolTable<OperId>,
 ) -> impl Parser<Input, Output = Equation> + 'a
@@ -32,7 +27,7 @@ where
         .with(left_parser.skip(spaces()).skip(string("=").skip(spaces())))
         .and(right_parser)
         .map(|(left, right)| -> Equation {
-            let context = Context(elems.borrow().clone());
+            let context = Context(HashMap::new());
             let mut names = ctxts.current_var_table();
             let oper_names = opers.current_table();
             names.extend(oper_names);
@@ -45,25 +40,25 @@ where
         })
 }
 
-#[test]
-fn test_data_decl_parser() {
-    use crate::id::TypeId;
+#[cfg(test)]
+mod tests {
+    use crate::{context_table::CtxtTable, id::{OperId}, parser::data_decl::data_decl_parser, symbol_table::SymbolTable};
     use combine::EasyParser;
+    
+    #[test]
+    fn test_data_decl_parser() {
+        let input = "#data wrk!e1; = d3;";
 
-    let input = "#data wrk![e1] = d3";
+        let ctxts = CtxtTable::new();
+        ctxts.assign_to_current("".to_string());
 
-    let ctxts = CtxtTable::new();
-    let elems = RefCell::new(HashMap::new());
+        let opers = SymbolTable::<OperId>::new();
+        opers.assign("wrk".to_string());
+        opers.assign("e1".to_string());
+        opers.assign("d3".to_string());
 
-    let var_id = ctxts.assign_to_current("e1".to_string());
-    elems.borrow_mut().insert(var_id, Type::Unary(TypeId(0)));
-    let var_id = ctxts.assign_to_current("d3".to_string());
-    elems.borrow_mut().insert(var_id, Type::Unary(TypeId(0)));
-
-    let opers = SymbolTable::<OperId>::new();
-    opers.assign("wrk".to_string());
-
-    let result = data_decl_parser(&elems, &ctxts, &opers).easy_parse(input);
-    dbg!(&result);
-    assert!(result.is_ok());
+        let result = data_decl_parser(&ctxts, &opers).easy_parse(input);
+        dbg!(&result);
+        assert!(result.is_ok());
+    }
 }

@@ -45,15 +45,13 @@ pub fn parse_instance(path: &str) -> crate::instance::Instance {
     use crate::id::{OperId, TypeId};
     use crate::parser::instance::instance_parser;
     use crate::symbol_table::SymbolTable;
-    use std::cell::RefCell;
-    use std::collections::HashMap;
+
     let schema_example = std::fs::read_to_string(path).expect("Failed to read");
 
-    let elems = RefCell::new(HashMap::new());
     let types = SymbolTable::<TypeId>::new();
     let opers = SymbolTable::<OperId>::new();
     let ctxts = CtxtTable::new();
-    let result = instance_parser::<combine::easy::Stream<&str>>(&elems, &types, &opers, &ctxts)
+    let result = instance_parser::<combine::easy::Stream<&str>>(&types, &opers, &ctxts)
         .easy_parse(schema_example.as_ref());
     result.unwrap().0
 }

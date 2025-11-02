@@ -27,8 +27,6 @@ fn test_terminner_var_parser() {
 
     let ctxts = CtxtTable::new();
     ctxts.assign_to_current("a".to_string());
-    // let vars = SymbolTable::<VarId>::new();
-    // vars.insert("a".to_string(), VarId(0));
     let r = terminner_var_parser(&ctxts).easy_parse("a");
     assert_eq!(r, Ok((TermInner::Var(VarId(0)), "")));
 }

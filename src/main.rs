@@ -1,6 +1,5 @@
 extern crate combine;
 
-
 mod completion;
 mod context;
 
@@ -34,7 +33,8 @@ fn main() {
 mod qu {
     use std::{collections::HashMap, rc::Rc};
     use crate::{equation::Equation, id::{OperId, Symbol, VarId}, term::TermInner, r#type::Type};
-
+    use crate::{context::Context, id::TypeId};
+    
     pub fn query() {
         use crate::parser::parse_instance;
         let path = "instance/i.instance";
@@ -51,7 +51,7 @@ mod qu {
         dbg!(&queried.data);
     }
 
-        use crate::{context::Context, id::TypeId};
+        
     fn query_entity() -> crate::eval::QueryEntity {
 
         use crate::r#type::Type;

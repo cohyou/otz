@@ -1,17 +1,14 @@
-use std::{cell::RefCell, collections::HashMap};
-
 use combine::{attempt, parser::char::spaces, sep_end_by, Parser, Stream};
 
 use crate::{
-    context_table::CtxtTable, equation::Equation, id::{OperId, TypeId, VarId}, instance::Instance, oper::Oper, 
+    context_table::CtxtTable, equation::Equation, id::{OperId, TypeId}, instance::Instance, oper::Oper, 
     parser::{
         data_decl::data_decl_parser, elem_decl::elem_decl_parser, schema_decl::schema_decl_parser,
     },
-    schema::Schema, symbol_table::SymbolTable, r#type::Type
+    schema::Schema, symbol_table::SymbolTable, 
 };
 
 pub fn instance_parser<'a, Input>(
-    elems: &'a RefCell<HashMap<VarId, Type>>,
     types: &'a SymbolTable<TypeId>,
     opers: &'a SymbolTable<OperId>,
     ctxts: &'a CtxtTable,
@@ -27,7 +24,7 @@ where
     }
 
     let elem_parser = elem_decl_parser(types, opers);
-    let data_parser = data_decl_parser(elems, ctxts, opers);
+    let data_parser = data_decl_parser(ctxts, opers);
 
     // schema: Schema,
     let decl_parsers = attempt(schema_decl_parser(types, opers, ctxts).map(Decl::Schema))
@@ -59,12 +56,11 @@ fn test_parse_instance() {
     let f = "instance/i.instance";
     let input = std::fs::read_to_string(f).expect("Failed to read");
 
-    let elems = RefCell::new(HashMap::new());
     let types = SymbolTable::<TypeId>::new();
     let opers = SymbolTable::<OperId>::new();
     let ctxts = CtxtTable::new();
 
-    let result = instance_parser::<combine::easy::Stream<&str>>(&elems, &types, &opers, &ctxts)
+    let result = instance_parser::<combine::easy::Stream<&str>>(&types, &opers, &ctxts)
         .easy_parse(input.as_ref());
     dbg!(&result);
     assert!(result.is_ok())
