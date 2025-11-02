@@ -3,17 +3,11 @@ use std::{cell::RefCell, collections::HashMap};
 use combine::{attempt, parser::char::spaces, sep_end_by, Parser, Stream};
 
 use crate::{
-    context::Context,
-    context_table::CtxtTable,
-    equation::Equation,
-    id::{OperId, TypeId, VarId},
-    instance::Instance,
+    context_table::CtxtTable, equation::Equation, id::{OperId, TypeId, VarId}, instance::Instance, oper::Oper, 
     parser::{
         data_decl::data_decl_parser, elem_decl::elem_decl_parser, schema_decl::schema_decl_parser,
     },
-    r#type::Type,
-    schema::Schema,
-    symbol_table::SymbolTable,
+    schema::Schema, symbol_table::SymbolTable, r#type::Type
 };
 
 pub fn instance_parser<'a, Input>(
@@ -28,11 +22,11 @@ where
     #[derive(Clone)]
     enum Decl {
         Schema(Schema),
-        Elem(HashMap<VarId, Type>),
+        Elem(Vec<Oper>),
         Data(Equation),
     }
 
-    let elem_parser = elem_decl_parser(elems, ctxts, types);
+    let elem_parser = elem_decl_parser(types, opers);
     let data_parser = data_decl_parser(elems, ctxts, opers);
 
     // schema: Schema,
@@ -48,8 +42,7 @@ where
                 Decl::Schema(sch) => instance.schema = sch,
                 Decl::Elem(elems) => {
                     // dbg!(&elems);
-                    instance.elems = Context(elems);
-                    // instance.elems.extend_to_default(elem)
+                    instance.elems = elems;
                 }
                 Decl::Data(eq) => instance.data.push(eq),
             }

@@ -17,6 +17,8 @@ mod theory_decl;
 pub mod r#type;
 mod type_decl;
 mod variable;
+mod elem;
+mod elems;
 
 pub const DIRECTIVE_SIGN: &'static str = "#";
 

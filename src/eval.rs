@@ -51,7 +51,7 @@ pub fn eval(instance: Instance, query: Query) -> Instance {
 
     Instance {
         schema: instance.schema,
-        elems: Context::default(),
+        elems: vec![],
         data: vec![],
     }
 }
@@ -67,7 +67,6 @@ fn eval_generators(instance: &Instance, query_entity: &QueryEntity) -> Vec<Subst
         .map(|context| {
             let substs = instance
                 .elems
-                .0
                 .iter().filter_map(|e| {
                     // frからsubstを作る
                     let init = HashMap::new();
@@ -75,10 +74,10 @@ fn eval_generators(instance: &Instance, query_entity: &QueryEntity) -> Vec<Subst
                     let subst = context
                         .0
                         .iter().try_fold(init, |mut subst, (varid, tp)| {
-                            (e.1 == tp).then(|| {
+                            (e.cod.as_ref() == tp).then(|| {
                                 subst.insert(
                                     Var::Id(varid.clone()),
-                                    Rc::new(TermInner::var(e.0.clone())),
+                                    Rc::new(TermInner::Fun(e.id.clone(), vec![])),
                                 );
                                 subst
                             })
