@@ -1,10 +1,7 @@
 use std::rc::Rc;
 
 use crate::{
-    context::Context,
-    id::{OperId, Symbol, VarId},
-    completion::rule::{RuleId, RuleKind},
-    symbol_table::Names,
+    completion::{rule::{RuleId, RuleKind}, subst::Var}, context::Context, id::{OperId, Symbol, VarId}, symbol_table::Names
 };
 type Link<T> = std::rc::Rc<T>;
 
@@ -149,7 +146,7 @@ pub enum TermInner {
 
     RuledVar(VarId, RuleId, RuleKind),
 
-    Subst(VarId, Rc<TermInner>),
+    Subst(Vec<(Var, Rc<TermInner>)>),
 }
 
 impl std::fmt::Debug for TermInner {
@@ -168,7 +165,12 @@ impl std::fmt::Debug for TermInner {
                 }
             }
 
-            TermInner::Subst(varid, inner) => write!(f, "Subst[{:?}->{:?}]", varid, inner),
+            TermInner::Subst(substs) => {
+                substs.iter().for_each(|(varid, inner)| {
+                    let _ = write!(f, "Subst[{:?}->{:?}]", varid, inner);
+                });
+                write!(f, "")                
+            },
         }
     }
 }

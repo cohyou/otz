@@ -51,12 +51,17 @@ pub fn eval(instance: Instance, query: Query) -> Instance {
             let attrs = elems.iter().filter_map(|e| {
                 if let Elem::Subst(subst) = e {
                     let substed_term = term.substitute(subst);
+                    let subst_vec = subst.0.iter().map(|(varid, inner)| {
+                        (varid.clone(), inner.clone())
+                    }).collect::<Vec<_>>();
                     Some(Equation {
                         context: substed_term.context.clone(),
                         names: substed_term.names.clone(),
                         left: Rc::new(TermInner::Fun(
                             operid.clone(),
-                            vec![Rc::new(TermInner::Subst(subst.clone()))],
+                            vec![
+                                Rc::new(TermInner::Subst(subst_vec))
+                            ],
                         )),
                         right: substed_term.inner.clone(),
                     })

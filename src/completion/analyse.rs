@@ -99,7 +99,7 @@ impl TermInner {
             &TermInner::Var(_) | TermInner::RuledVar(_, _, _) => 0,
             &TermInner::Int(_) | TermInner::Str(_) => 1,
             &TermInner::Fun(_, args) => 1 + args.iter().map(|inner| inner.size()).sum::<usize>(),
-            &TermInner::Subst(_, inner) => inner.size(),
+            &TermInner::Subst(_) => unimplemented!(),
         }
     }
     pub fn var_size(&self) -> usize {
@@ -110,7 +110,7 @@ impl TermInner {
             &TermInner::Fun(_, args) => {
                 1 + args.iter().map(|inner| inner.var_size()).sum::<usize>()
             }
-            &TermInner::Subst(_, inner) => inner.var_size(),
+            &TermInner::Subst(_) => unimplemented!(),
         }
     }
 }
