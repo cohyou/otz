@@ -9,8 +9,8 @@ use combine::stream::Stream;
 use combine::Parser;
 
 pub fn oper_decl_parser<'a, Input>(
-    opers: &'a SymbolTable<OperId>,
     types: &'a SymbolTable<TypeId>,
+    opers: &'a SymbolTable<OperId>,
 ) -> impl Parser<Input, Output = Oper> + 'a
 where
     Input: Stream<Token = char> + 'a,
@@ -32,7 +32,7 @@ fn test_oper_decl_parser() {
     let types = SymbolTable::<TypeId>::new();
     types.assign("Bool".to_string());
 
-    let result = oper_decl_parser(&opers, &types).easy_parse(input);
+    let result = oper_decl_parser(&types, &opers).easy_parse(input);
     dbg!(&result);
     assert!(result.is_ok());
 }

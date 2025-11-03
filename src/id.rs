@@ -37,6 +37,7 @@ impl std::fmt::Debug for VarId {
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum Symbol {
-    Var(VarId),
+    Type(TypeId),
     Fun(OperId),
+    Var(VarId),
 }

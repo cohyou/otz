@@ -12,8 +12,8 @@ use crate::symbol_table::SymbolTable;
 
 pub fn equation_decl_parser<'a, Input>(
     types: &'a SymbolTable<TypeId>,
-    ctxts: &'a CtxtTable,
     opers: &'a SymbolTable<OperId>,
+    ctxts: &'a CtxtTable,
 ) -> impl Parser<Input, Output = Equation> + 'a
 where
     Input: Stream<Token = char> + 'a,
@@ -35,7 +35,7 @@ fn test_eq_decl_parser() {
     let opers = SymbolTable::<OperId>::new();
     opers.assign("not".to_string());
     let ctxts = CtxtTable::new();
-    let result = equation_decl_parser(&types, &ctxts, &opers).easy_parse(type_name_example);
+    let result = equation_decl_parser(&types, &opers, &ctxts).easy_parse(type_name_example);
     dbg!(&result);
     assert!(result.is_ok());
 }

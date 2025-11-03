@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use combine::{attempt, parser::char::spaces, sep_end_by, Parser, Stream};
 
 use crate::{
@@ -33,7 +35,10 @@ where
 
     sep_end_by(decl_parsers, spaces()).map(|decls: Vec<Decl>| {
         let mut instance = Instance::default();
-
+        let mut names = types.current_table().clone();
+        names.extend(opers.current_table().clone());
+        dbg!(&names);
+        instance.names = Rc::new(names);
         for decl in decls {
             match decl {
                 Decl::Schema(sch) => instance.schema = sch,
@@ -62,6 +67,5 @@ fn test_parse_instance() {
 
     let result = instance_parser::<combine::easy::Stream<&str>>(&types, &opers, &ctxts)
         .easy_parse(input.as_ref());
-    dbg!(&result);
-    assert!(result.is_ok())
+    println!("{}", result.unwrap().0);
 }

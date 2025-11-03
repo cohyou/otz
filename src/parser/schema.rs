@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use combine::parser::char::spaces;
 use combine::stream::Stream;
 use combine::Parser;
@@ -41,7 +43,7 @@ where
     let entity_parser = type_decl_parser::<Input>(types);
     let fkey_parser = fkey_decl_parser::<Input>(opers, types);
     let attr_parser = attr_decl_parser::<Input>(opers, types);
-    let equation_parser = equation_decl_parser::<Input>(types, ctxts, opers);
+    let equation_parser = equation_decl_parser::<Input>(types, opers, ctxts);
 
     let decl_parsers = attempt(theory_decl_parser.map(Decl::Theory))
         .or(attempt(entity_parser.map(Decl::Entity)))
@@ -52,6 +54,9 @@ where
 
     sep_end_by(decl_parsers, separator).map(|decls: Vec<Decl>| {
         let mut schema = Schema::default();
+        let mut names = types.current_table().clone();
+        names.extend(opers.current_table().clone());
+        schema.names = Rc::new(names);
 
         for decl in decls {
             match decl {
@@ -66,25 +71,26 @@ where
     })
 }
 
-#[test]
-fn test_schema_parser() {
+#[cfg(test)]
+mod tests {
+    use crate::id::{OperId, TypeId};
+    use crate::context_table::CtxtTable;
+    use crate::parser::schema::schema_parser;
     use crate::combine::EasyParser;
+    use crate::symbol_table::SymbolTable;
+    
+    #[test]
+    fn test_schema_parser() {
+        let f = "schema/s.schema";
+        let schema_example = std::fs::read_to_string(f).expect("Failed to read");
 
-    let f = "schema/s.schema";
-    let schema_example = std::fs::read_to_string(f).expect("Failed to read");
+        let types = SymbolTable::<TypeId>::new();
+        let opers = SymbolTable::<OperId>::new();
+        let ctxts = CtxtTable::new();
+        let result = schema_parser::<combine::easy::Stream<&str>>(&types, &opers, &ctxts)
+            .easy_parse(schema_example.as_ref());
 
-    let types = SymbolTable::<TypeId>::new();
-    let opers = SymbolTable::<OperId>::new();
-    let ctxts = CtxtTable::new();
-    let result = schema_parser::<combine::easy::Stream<&str>>(&types, &opers, &ctxts)
-        .easy_parse(schema_example.as_ref());
-
-    dbg!(&types);
-    dbg!(&opers);
-    dbg!(&ctxts);
-    dbg!(&result);
-    match result {
-        Ok((_, _)) => {}
-        Err(err) => panic!("Failed to parse schema: {}", err),
+        println!("{}", result.unwrap().0);
     }
 }
+

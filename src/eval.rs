@@ -128,6 +128,7 @@ pub fn eval(instance: Instance, query: Query) -> Instance {
     let data = [attrs, keys].concat();
 
     Instance {
+        names: instance.names.clone(),
         schema: instance.schema,
         elems: elems,
         data: data,

@@ -5,7 +5,7 @@ type Link<T> = std::rc::Rc<T>;
 #[derive(PartialEq, Eq, Clone)]
 pub struct Oper {
     pub id: OperId,
-    dom: Link<Type>,
+    pub dom: Link<Type>,
     pub cod: Link<Type>,
 }
 

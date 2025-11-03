@@ -6,6 +6,7 @@ use autoincrement::AsyncIncremental;
 
 use crate::id::OperId;
 use crate::id::Symbol;
+use crate::id::TypeId;
 
 pub type Names = HashMap<String, Symbol>;
 
@@ -60,6 +61,16 @@ impl SymbolTable<OperId> {
         let names = HashMap::new();
         self.table.borrow().iter().fold(names, |mut table, (k, v)| {
             table.insert(k.clone(), Symbol::Fun(v.clone()));
+            table
+        })
+    }
+}
+
+impl SymbolTable<TypeId> {
+    pub fn current_table(&self) -> HashMap<String, Symbol> {
+        let names = HashMap::new();
+        self.table.borrow().iter().fold(names, |mut table, (k, v)| {
+            table.insert(k.clone(), Symbol::Type(v.clone()));
             table
         })
     }

@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use combine::parser::char::spaces;
 use combine::stream::Stream;
 use combine::Parser;
@@ -32,8 +34,8 @@ where
     }
 
     let type_parser = type_decl_parser::<Input>(types);
-    let oper_parser = oper_decl_parser::<Input>(opers, types);
-    let equation_parser = equation_decl_parser::<Input>(types, ctxts, opers);
+    let oper_parser = oper_decl_parser::<Input>(types, opers);
+    let equation_parser = equation_decl_parser::<Input>(types, opers, ctxts);
 
     let decl_parsers = attempt(type_parser.map(Decl::Type))
         .or(attempt(oper_parser.map(Decl::Oper)))
@@ -42,6 +44,9 @@ where
 
     sep_end_by(decl_parsers, separator).map(|decls: Vec<Decl>| {
         let mut theory = Theory::default();
+        let mut names = types.current_table().clone();
+        names.extend(opers.current_table().clone());
+        theory.names = Rc::new(names);
         for decl in decls {
             match decl {
                 Decl::Type(ty) => theory.types.push(ty),
@@ -53,48 +58,51 @@ where
     })
 }
 
-#[test]
-fn test_theory_parser() {
-    use crate::combine::EasyParser;
+#[cfg(test)]
+mod tests {
+    use crate::id::{OperId, TypeId};
+    use crate::context_table::CtxtTable;
+    use crate::parser::theory::theory_parser;
+    use crate::symbol_table::SymbolTable;
+    use combine::easy::Stream;
+    use combine::EasyParser;
 
-    let theory_example =
-        "#sort Bool \n#sort Int \n#func not: Bool -> Bool \n\n#rule a: Bool | not![a] = a";
-    // let theory_example = "#sort Bool  \n#func not: Bool -> Bool \n#rule a: Bool | not![a] = a\n#sort Int";
+    #[test]
+    fn test_theory_parser() {
+        let theory_example =
+            "#sort Bool \n#sort Int \n#func not: Bool -> Bool \n\n#rule a: Bool | not![a] = a";
+        // let theory_example = "#sort Bool  \n#func not: Bool -> Bool \n#rule a: Bool | not![a] = a\n#sort Int";
 
-    // let theory_example = "#sort Bool\n#";
-    // let theory_example = "#sort Bool\n#sort Int\n#func qot: Bool -> Bool";
-    // let theory_example = "#sort Bool\n#func qot: Bool -> Bool";
-    // let theory_example = "#sort Bool\n#rule a: Bool | not![a] = a";
-    let types = SymbolTable::<TypeId>::new();
-    let opers = SymbolTable::<OperId>::new();
-    let ctxts = CtxtTable::new();
-    let r = theory_parser(&types, &opers, &ctxts).easy_parse(theory_example);
-    match r {
-        Ok((theory, _)) => {
-            dbg!(&theory);
+        // let theory_example = "#sort Bool\n#";
+        // let theory_example = "#sort Bool\n#sort Int\n#func qot: Bool -> Bool";
+        // let theory_example = "#sort Bool\n#func qot: Bool -> Bool";
+        // let theory_example = "#sort Bool\n#rule a: Bool | not![a] = a";
+        let types = SymbolTable::<TypeId>::new();
+        let opers = SymbolTable::<OperId>::new();
+        let ctxts = CtxtTable::new();
+        let r = theory_parser(&types, &opers, &ctxts).easy_parse(theory_example);
+        match r {
+            Ok((theory, _)) => {
+                dbg!(&theory);
+            }
+            Err(err) => {
+                dbg!(&err.position);
+                panic!("Failed to parse theory: {}", &err);
+            }
         }
-        Err(err) => {
-            dbg!(&err.position);
-            panic!("Failed to parse theory: {}", &err);
-        }
+    }
+
+    #[test]
+    fn test_theory_parser2() {
+        let types = SymbolTable::<TypeId>::new();
+        let opers = SymbolTable::<OperId>::new();
+        let ctxts = CtxtTable::new();
+
+        let f = "theory/test.theory";
+        let theory_example = std::fs::read_to_string(f).expect("Failed to read");
+        let mut parser = theory_parser::<Stream<&str>>(&types, &opers, &ctxts);
+        let result = parser.easy_parse(theory_example.as_ref());
+        println!("theory: \n{}", result.unwrap().0);
     }
 }
 
-#[test]
-fn test_theory_parser2() {
-    use combine::easy::Stream;
-    use combine::EasyParser;
-    let types = SymbolTable::<TypeId>::new();
-    let opers = SymbolTable::<OperId>::new();
-    let ctxts = CtxtTable::new();
-    // dbg!(&ctxts);
-    let f = "theory/test.theory";
-    let theory_example = std::fs::read_to_string(f).expect("Failed to read");
-    let r =
-        theory_parser::<Stream<&str>>(&types, &opers, &ctxts).easy_parse(theory_example.as_ref());
-    // dbg!(&types);
-    // dbg!(&opers);
-    dbg!(&ctxts);
-    dbg!(&r);
-    assert!(r.is_ok());
-}
