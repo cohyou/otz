@@ -28,7 +28,7 @@ where
         .with(many1::<Vec<_>, Input, _>(alpha_num()))
         .map(|chars: Vec<_>| {
             let name = chars.into_iter().collect::<String>();
-            let path = format!("schema/{}.schema", name);
+            let path = format!("example/schema/{}.schema", name);
             let src =
                 read_to_string(&path).expect(&format!("Failed to read theory file: {}", path));
             let schema = schema_parser::<combine::easy::Stream<&str>>(types, opers, ctxts)

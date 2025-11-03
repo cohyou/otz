@@ -18,7 +18,7 @@ where
         .with(many1::<Vec<_>, Input, _>(alpha_num()))
         .map(|chars: Vec<_>| {
             let name = chars.into_iter().collect::<String>();
-            let path = format!("instance/{}.instance", name);
+            let path = format!("example/instance/{}.instance", name);
             let src =
                 read_to_string(&path).expect(&format!("Failed to read theory file: {}", path));
             let instance = instance_parser::<combine::easy::Stream<&str>>(types, opers, ctxts)

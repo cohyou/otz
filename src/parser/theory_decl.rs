@@ -32,7 +32,7 @@ where
         ))
         .map(|chars: Vec<_>| {
             let name = chars.into_iter().collect::<String>();
-            let path = format!("theory/{}.theory", name);
+            let path = format!("example/theory/{}.theory", name);
             let src =
                 read_to_string(&path).expect(&format!("Failed to read theory file: {}", path));
             let x = theory_parser::<combine::easy::Stream<&str>>(types, opers, ctxts)
