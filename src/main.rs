@@ -47,8 +47,8 @@ mod qu {
         let mut q = Query::default();
         q.0.push(query_entity());
         let queried = eval(instance, q);
-        dbg!(&queried.elems);
-        dbg!(&queried.data);
+
+        println!("{}", queried);
     }
 
         

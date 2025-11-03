@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use crate::{
-    completion::{rule::{RuleId, RuleKind}, subst::Var}, context::Context, id::{OperId, Symbol, VarId}, symbol_table::Names
+    completion::{rule::{RuleId, RuleKind}, subst::Var}, context::Context, id::{OperId, Symbol, VarId}, symbol_table::Names,
 };
 type Link<T> = std::rc::Rc<T>;
 
@@ -128,6 +128,33 @@ impl Term {
                     };
                     write!(f, "")
                 }
+            }
+            Subst(substs) => {
+                let _ = write!(f, "[");
+                substs.iter().enumerate().for_each(|(i, (var, inner))| {
+                    if i > 0 {
+                        let _ = write!(f, ", ");
+                    }
+                    match var {
+                        crate::completion::subst::Var::Id(vid) => {
+                            let v = self
+                                .names
+                                .iter()
+                                .find(|(_, sym)| sym == &&Symbol::Var(vid.clone()));
+                            if let Some((nm, _)) = v {
+                                let _ = write!(f, "{} -> ", nm);
+                            } else {
+                                let _ = write!(f, "v{:?} -> ", vid.0);
+                            }
+                        }
+                        _ => {
+                            unimplemented!();
+                        }
+                    }
+                    let _ = self.fmt_inner(f, inner);
+                });
+                let _ = write!(f, "]");
+                write!(f, "")
             }
             _ => {
                 dbg!(&inner);

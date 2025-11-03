@@ -37,7 +37,6 @@ where
         let mut instance = Instance::default();
         let mut names = types.current_table().clone();
         names.extend(opers.current_table().clone());
-        dbg!(&names);
         instance.names = Rc::new(names);
         for decl in decls {
             match decl {
