@@ -58,11 +58,21 @@ mod qu {
             context: Rc::new(Context(HashMap::new())),
             names: Rc::new(HashMap::new()),
             inner: Rc::new(
-            // 10はlast: Str
+            // 10はlast: Str なのでe.lastを表す
             TermInner::Fun(OperId(10), vec![
                 Rc::new(TermInner::Var(VarId(100)))
             ])),
         };
+        // wrk = [d -> e.wrk] wrkは8
+        let key_inner = TermInner::Fun(OperId(8), vec![
+            Rc::new(TermInner::Var(VarId(100)))
+        ]);
+        let key_term = crate::term::Term {
+            context: Rc::new(Context(HashMap::new())),
+            names: Rc::new(HashMap::new()),
+            inner: Rc::new(key_inner.clone()),
+        };
+        let keys = vec![(OperId(1000), VarId(1100), key_term)];
         crate::eval::QueryEntity {
             entity: vec![TypeId(5)],
             fr: vec![Context(HashMap::from([(VarId(100), Type::Unary(TypeId(5)))]))],
@@ -70,7 +80,7 @@ mod qu {
             att: vec![(OperId(200), ret)], // Vec<(OperId, Term)>
             // keys: t -> t'
             // transform from tableau for t' to tableau for t
-            keys: vec![], // Vec<(OperId, VarId, Term)>
+            keys: keys, // Vec<(OperId, VarId, Term)>
         }
     }
 

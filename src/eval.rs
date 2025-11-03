@@ -54,6 +54,10 @@ pub fn eval(instance: Instance, query: Query) -> Instance {
                     let subst_vec = subst.0.iter().map(|(varid, inner)| {
                         (varid.clone(), inner.clone())
                     }).collect::<Vec<_>>();
+
+                    // TODO: to_ruleが左->右であることを仮定している
+                    let rules = instance.data.iter().map(Equation::to_rule).collect::<Vec<_>>();
+                    let right = substed_term.normalize(&rules);
                     Some(Equation {
                         context: substed_term.context.clone(),
                         names: substed_term.names.clone(),
@@ -63,7 +67,7 @@ pub fn eval(instance: Instance, query: Query) -> Instance {
                                 Rc::new(TermInner::Subst(subst_vec))
                             ],
                         )),
-                        right: substed_term.inner.clone(),
+                        right: right.inner.clone(),
                     })
                 } else {
                     None
@@ -74,13 +78,59 @@ pub fn eval(instance: Instance, query: Query) -> Instance {
         }).flatten().collect::<Vec<_>>()
     }).flatten().collect::<Vec<_>>();
     
-
     // foreign keyの処理
+    let keys = query.0.iter().map(|qe| {
+        qe.keys.iter().map(|(operid, varid, term)| {
+            let keys = elems.iter().filter_map(|e| {
+                if let Elem::Subst(subst) = e {
+                    let substed_term = term.substitute(subst);
+                    let subst_vec = subst.0.iter().map(|(varid, inner)| {
+                        (varid.clone(), inner.clone())
+                    }).collect::<Vec<_>>();
+
+                    let keys_map = HashMap::from([(
+                        Var::Id(varid.clone()),
+                        term.inner.clone(),
+                    )]);
+                    let keys_subst = Subst::new(keys_map);
+                    let right_subst = subst.compose(&keys_subst);
+                    let right_subst_vec = right_subst.0.iter().map(|(varid, inner)| {
+                        let term = Term {
+                            context: Rc::new(Context(HashMap::new())),
+                            names: Rc::new(HashMap::new()),
+                            inner: inner.clone(),
+                        };
+                        // TODO: to_ruleが左->右であることを仮定している
+                        let rules = instance.data.iter().map(Equation::to_rule).collect::<Vec<_>>();
+                        let inner = term.normalize(&rules).inner.clone();
+                        (varid.clone(), inner)
+                    }).collect::<Vec<_>>();
+
+                    Some(Equation {
+                        context: substed_term.context.clone(),
+                        names: substed_term.names.clone(),
+                        left: Rc::new(TermInner::Fun(
+                            operid.clone(),
+                            vec![
+                                Rc::new(TermInner::Subst(subst_vec))
+                            ],
+                        )),
+                        right: Rc::new(TermInner::Subst(right_subst_vec)),
+                    })
+                } else {
+                    None
+                }
+            }).collect::<Vec<_>>();
+            keys
+        }).flatten().collect::<Vec<_>>()
+    }).flatten().collect::<Vec<_>>();
+                    
+    let data = [attrs, keys].concat();
 
     Instance {
         schema: instance.schema,
         elems: elems,
-        data: attrs,
+        data: data,
     }
 }
 
