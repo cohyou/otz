@@ -39,7 +39,7 @@ mod qu {
         use crate::parser::parse_instance;
         let path = "instance/i.instance";
         let instance = parse_instance(path);
-        // dbg!(&instance);
+        dbg!(&instance);
 
         use crate::eval::eval;
         use crate::eval::Query;
@@ -54,11 +54,20 @@ mod qu {
         
     fn query_entity() -> crate::eval::QueryEntity {
         use crate::r#type::Type;
+        let ret = crate::term::Term {
+            context: Rc::new(Context(HashMap::new())),
+            names: Rc::new(HashMap::new()),
+            inner: Rc::new(
+            // 10はlast: Str
+            TermInner::Fun(OperId(10), vec![
+                Rc::new(TermInner::Var(VarId(100)))
+            ])),
+        };
         crate::eval::QueryEntity {
             entity: vec![TypeId(5)],
             fr: vec![Context(HashMap::from([(VarId(100), Type::Unary(TypeId(5)))]))],
             wh: vec![query_where()],
-            att: vec![], // Vec<(OperId, Term)>
+            att: vec![(OperId(200), ret)], // Vec<(OperId, Term)>
             // keys: t -> t'
             // transform from tableau for t' to tableau for t
             keys: vec![], // Vec<(OperId, VarId, Term)>

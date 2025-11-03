@@ -13,4 +13,4 @@
 #rule e: Emp | mgr![mgr![e]] = mgr![e]
 #rule e: Emp | wrk![mgr![e]] = wrk![e]
 #rule d: Dept | wrk![sec![d]] = d
-#rule e: Emp | st![sal![e] sal![mgr![e]]] = true![]
+#rule e: Emp | st![sal![e] sal![mgr![e]]] = true;

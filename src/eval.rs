@@ -36,20 +36,46 @@ pub fn eval(instance: Instance, query: Query) -> Instance {
     // generator
     let substs = query.0.iter().map(|query_entity| {
         eval_generators(&saturated, query_entity)
-    }).inspect(|subst| { dbg!(&subst); }).collect::<Vec<_>>();
+    })
+    // .inspect(|subst| { dbg!(&subst); })
+    .collect::<Vec<_>>();
 
     let elems = substs.iter().flatten().map(|s| {
         Elem::Subst(s.clone())
     }).collect::<Vec<_>>();
 
     // attの処理
+    let attrs = query.0.iter().map(|qe| {
+        qe.att.iter().map(|(operid, term)| {
+            // dbg!(operid, term);
+            let attrs = elems.iter().filter_map(|e| {
+                if let Elem::Subst(subst) = e {
+                    let substed_term = term.substitute(subst);
+                    Some(Equation {
+                        context: substed_term.context.clone(),
+                        names: substed_term.names.clone(),
+                        left: Rc::new(TermInner::Fun(
+                            operid.clone(),
+                            vec![Rc::new(TermInner::Subst(subst.clone()))],
+                        )),
+                        right: substed_term.inner.clone(),
+                    })
+                } else {
+                    None
+                }
+            }).collect::<Vec<_>>();
+            // dbg!(&attrs);
+            attrs
+        }).flatten().collect::<Vec<_>>()
+    }).flatten().collect::<Vec<_>>();
+    
 
     // foreign keyの処理
 
     Instance {
         schema: instance.schema,
         elems: elems,
-        data: vec![],
+        data: attrs,
     }
 }
 
@@ -88,7 +114,6 @@ fn eval_generators(instance: &Instance, query_entity: &QueryEntity) -> Vec<Subst
                     subst
                 })
                 .collect::<Vec<_>>();
-            dbg!(&substs);
 
             // 一回Vecにせずに繋げた方が効率的だが分かりやすさのため一時的にこうする
             let substs = substs
