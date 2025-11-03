@@ -6,6 +6,7 @@ use combine::Parser;
 use combine::{many1, sep_by};
 
 use crate::id::{OperId, TypeId};
+use crate::instance::Elem;
 use crate::oper::Oper;
 use crate::parser::r#type::type_unary_parser;
 use crate::r#type::Type;
@@ -14,7 +15,7 @@ use crate::symbol_table::SymbolTable;
 pub fn parse_elem<'a, Input>(
     types: &'a SymbolTable<TypeId>,
     opers: &'a SymbolTable<OperId>,  
-) -> impl Parser<Input, Output = Vec<Oper>> + 'a
+) -> impl Parser<Input, Output = Vec<Elem>> + 'a
 where
     Input: Stream<Token = char> + 'a,
 {
@@ -31,8 +32,8 @@ where
                 let id = opers.assign(ename);
                 let dom = Rc::new(Type::Unary(TypeId(4)));
                 let cod = Rc::new(t.clone());
-                Oper::new(id.clone(), dom, cod)
-            }).collect::<Vec<Oper>>()
+                Elem::Oper(Oper::new(id.clone(), dom, cod))
+            }).collect::<Vec<_>>()
         })
 }
 

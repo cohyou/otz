@@ -4,14 +4,14 @@ use combine::stream::Stream;
 use combine::Parser;
 
 use crate::id::{OperId, TypeId};
-use crate::oper::Oper;
+use crate::instance::Elem;
 use crate::parser::elem::parse_elem;
 use crate::symbol_table::SymbolTable;
 
 pub fn elems_parser<'a, Input>(
     types: &'a SymbolTable<TypeId>,
     opers: &'a SymbolTable<OperId>,
-) -> impl Parser<Input, Output = Vec<Oper>> + 'a
+) -> impl Parser<Input, Output = Vec<Elem>> + 'a
 where
     Input: Stream<Token = char> + 'a,
 {

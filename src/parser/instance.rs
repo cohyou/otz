@@ -1,7 +1,7 @@
 use combine::{attempt, parser::char::spaces, sep_end_by, Parser, Stream};
 
 use crate::{
-    context_table::CtxtTable, equation::Equation, id::{OperId, TypeId}, instance::Instance, oper::Oper, 
+    context_table::CtxtTable, equation::Equation, id::{OperId, TypeId}, instance::{Elem, Instance},
     parser::{
         data_decl::data_decl_parser, elem_decl::elem_decl_parser, schema_decl::schema_decl_parser,
     },
@@ -19,7 +19,7 @@ where
     #[derive(Clone)]
     enum Decl {
         Schema(Schema),
-        Elem(Vec<Oper>),
+        Elem(Vec<Elem>),
         Data(Equation),
     }
 

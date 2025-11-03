@@ -39,7 +39,7 @@ mod qu {
         use crate::parser::parse_instance;
         let path = "instance/i.instance";
         let instance = parse_instance(path);
-        dbg!(&instance);
+        // dbg!(&instance);
 
         use crate::eval::eval;
         use crate::eval::Query;

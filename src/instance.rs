@@ -1,10 +1,16 @@
-use crate::{oper::Oper, equation::Equation, schema::Schema};
+use crate::{completion::subst::Subst, equation::Equation, oper::Oper, schema::Schema};
 
-#[derive(Default, Clone)]
+#[derive(Clone, Default)]
 pub struct Instance {
     pub schema: Schema,
-    pub elems: Vec<Oper>,
+    pub elems: Vec<Elem>,
     pub data: Vec<Equation>,
+}
+
+#[derive(Clone, Debug)]
+pub enum Elem {
+    Oper(Oper),
+    Subst(Subst),
 }
 
 impl std::fmt::Debug for Instance {

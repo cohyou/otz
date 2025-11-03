@@ -1,12 +1,7 @@
 use std::{collections::HashMap, rc::Rc};
 
 use crate::{
-    context::Context,
-    equation::Equation,
-    id::{OperId, TypeId, VarId},
-    instance::Instance,
-    completion::subst::{Subst, Var},
-    term::{Term, TermInner},
+    completion::subst::{Subst, Var}, context::Context, equation::Equation, id::{OperId, TypeId, VarId}, instance::{Elem, Instance}, term::{Term, TermInner}
 };
 
 /// A tableau over a schema S is a pair of:
@@ -39,11 +34,13 @@ pub fn eval(instance: Instance, query: Query) -> Instance {
     let saturated = instance.saturate();
 
     // generator
-    let _substs = query.0.iter().map(|query_entity| {
-        eval_generators(&saturated, query_entity);
+    let substs = query.0.iter().map(|query_entity| {
+        eval_generators(&saturated, query_entity)
     }).inspect(|subst| { dbg!(&subst); }).collect::<Vec<_>>();
-    
-    // elementsをContextに変換してからInstanceに渡す
+
+    let elems = substs.iter().flatten().map(|s| {
+        Elem::Subst(s.clone())
+    }).collect::<Vec<_>>();
 
     // attの処理
 
@@ -51,7 +48,7 @@ pub fn eval(instance: Instance, query: Query) -> Instance {
 
     Instance {
         schema: instance.schema,
-        elems: vec![],
+        elems: elems,
         data: vec![],
     }
 }
@@ -74,16 +71,20 @@ fn eval_generators(instance: &Instance, query_entity: &QueryEntity) -> Vec<Subst
                     let subst = context
                         .0
                         .iter().try_fold(init, |mut subst, (varid, tp)| {
-                            (e.cod.as_ref() == tp).then(|| {
-                                subst.insert(
-                                    Var::Id(varid.clone()),
-                                    Rc::new(TermInner::Fun(e.id.clone(), vec![])),
-                                );
-                                subst
-                            })
+                            if let Elem::Oper(e) = e {
+                                (e.cod.as_ref() == tp).then(|| {
+                                    subst.insert(
+                                        Var::Id(varid.clone()),
+                                        Rc::new(TermInner::Fun(e.id.clone(), vec![])),
+                                    );
+                                    subst
+                                })
+                            } else {
+                                None
+                            }
+
                         })
                         .map(|m| Subst::new(m));
-                    // dbg!(&subst);
                     subst
                 })
                 .collect::<Vec<_>>();
@@ -97,22 +98,21 @@ fn eval_generators(instance: &Instance, query_entity: &QueryEntity) -> Vec<Subst
                     query_entity.wh.iter().all(|eq| {
                         let left_substed = eq.left_term().substitute(&subst);
                         let right_substed = eq.right_term().substitute(&subst);
-                        // println!("left_substed: {}", left_substed);
-                        // println!("right_substed: {}", right_substed);
+
                         let substituted_equation = Equation {
                             context: left_substed.context,
                             names: left_substed.names,
                             left: left_substed.inner,
                             right: right_substed.inner,
                         };
-
+                        println!("substituted_equation: {}", substituted_equation);
                         // substituted_equationがsaturatedから導けるかどうか
+                        // TODO: 同じ型だとcompleteが複数回走るので効率が悪い
                         instance.deducible(&substituted_equation)
                     })
                 })
                 .cloned()
                 .collect::<Vec<_>>();
-
             substs
         })
         .flatten()

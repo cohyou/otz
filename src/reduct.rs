@@ -11,12 +11,22 @@ use crate::{
     completion::rule::Rule,
     completion::subst::{Subst, Var},
     subterm::{Position, SubTerm},
-    term::{Term, TermInner}, util::dispv,
+    term::{Term, TermInner}, 
+    
 };
+
+#[allow(unused)]
+use crate::util::dispv;
 
 impl Instance {
     pub fn deducible(&self, eq: &Equation) -> bool {
         // TODO: 本来はSchemaのconstraintsも必要
+        let eq_tp = match eq.left.as_ref() {
+            TermInner::Fun(operid, _) => {
+                self.schema.fkeys.iter().find(|op| &op.id == operid).map(|oper| oper.cod.clone())
+            }
+            _ => unimplemented!()
+        };
         let eqs = self.data.iter().filter(|e| {
             let e_tp = match e.left.as_ref() {
                 TermInner::Fun(operid, _) => {
@@ -24,15 +34,9 @@ impl Instance {
                 }
                 _ => unimplemented!()
             };
-            let eq_tp = match eq.left.as_ref() {
-                TermInner::Fun(operid, _) => {
-                    self.schema.fkeys.iter().find(|op| &op.id == operid).map(|oper| oper.cod.clone())
-                }
-                _ => unimplemented!()
-            };
             e_tp == eq_tp
         }).cloned().collect::<Vec<_>>();
-        dispv("filtered_eqs:", &eqs);
+        // dispv("filtered_eqs:", &eqs);
         let rules = complete(eqs, 0);
         eq.is_reducible(&rules)
     }
@@ -50,8 +54,8 @@ impl Equation {
     }
 
     fn is_reducible(&self, rules: &Vec<Rule>) -> bool {
-        dispv("is_reducible rules:", rules);
-        // dbg!(rules);
+        // dispv("is_reducible rules:", rules);
+
         let left = self.left_term().normalize(rules);
         let right = self.right_term().normalize(rules);
         println!("is_reducible {} ?? {}", left, right);

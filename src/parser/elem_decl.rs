@@ -1,20 +1,16 @@
-// use std::{cell::RefCell, collections::HashMap};
-
 use combine::{
     parser::char::{spaces, string},
     Parser, Stream,
 };
 
 use crate::{
-    // context_table::CtxtTable,
-    id::{OperId, TypeId}, oper::Oper, parser::{DIRECTIVE_SIGN, elems::elems_parser}, symbol_table::SymbolTable,
+    id::{OperId, TypeId}, instance::Elem, parser::{DIRECTIVE_SIGN, elems::elems_parser}, symbol_table::SymbolTable
 };
 
 pub fn elem_decl_parser<'a, Input>(
-    // elems: &'a RefCell<HashMap<VarId, Type>>,
     types: &'a SymbolTable<TypeId>,
     opers: &'a SymbolTable<OperId>,
-) -> impl Parser<Input, Output = Vec<Oper>> + 'a
+) -> impl Parser<Input, Output = Vec<Elem>> + 'a
 where
     Input: Stream<Token = char> + 'a,
 {
@@ -22,15 +18,6 @@ where
         .and(string("elem"))
         .and(spaces())
         .with(elems_parser(types, opers))
-        // .map(move |opers| {
-        //     let elems = {
-        //         let mut elems_ref = elems.borrow_mut();
-        //         elems_ref.extend(ctxt.0);
-        //         elems
-        //     };
-
-        //     elems.borrow().clone()
-        // })
 }
 
 #[cfg(test)]
