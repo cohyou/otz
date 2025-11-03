@@ -12,8 +12,8 @@ use crate::{
 };
 
 pub fn data_decl_parser<'a, Input>(
-    ctxts: &'a CtxtTable,
     opers: &'a SymbolTable<OperId>,
+    ctxts: &'a CtxtTable,    
 ) -> impl Parser<Input, Output = Equation> + 'a
 where
     Input: Stream<Token = char> + 'a,
@@ -57,7 +57,7 @@ mod tests {
         opers.assign("e1".to_string());
         opers.assign("d3".to_string());
 
-        let result = data_decl_parser(&ctxts, &opers).easy_parse(input);
+        let result = data_decl_parser(&opers, &ctxts).easy_parse(input);
         dbg!(&result);
         assert!(result.is_ok());
     }

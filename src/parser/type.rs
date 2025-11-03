@@ -9,14 +9,14 @@ use combine::{attempt, stream};
 use std::rc::Rc;
 
 pub fn type_parser<'a, Input>(
-    table: &'a SymbolTable<TypeId>,
-    oper_table: &'a SymbolTable<OperId>,
+    types: &'a SymbolTable<TypeId>,
+    opers: &'a SymbolTable<OperId>,
 ) -> impl Parser<Input, Output = Type> + 'a
 where
     Input: Stream<Token = char> + 'a,
 {
-    let type_unary_parser = type_unary_parser(table);
-    let type_binary_parser = type_binary_parser(table, oper_table);
+    let type_unary_parser = type_unary_parser(types);
+    let type_binary_parser = type_binary_parser(types, opers);
 
     attempt(type_binary_parser).or(type_unary_parser)
 }

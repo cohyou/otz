@@ -26,9 +26,8 @@ where
     }
 
     let elem_parser = elem_decl_parser(types, opers);
-    let data_parser = data_decl_parser(ctxts, opers);
+    let data_parser = data_decl_parser(opers, ctxts);
 
-    // schema: Schema,
     let decl_parsers = attempt(schema_decl_parser(types, opers, ctxts).map(Decl::Schema))
         .or(attempt(elem_parser.map(Decl::Elem)))
         .or(data_parser.map(Decl::Data));
@@ -42,13 +41,12 @@ where
             match decl {
                 Decl::Schema(sch) => instance.schema = sch,
                 Decl::Elem(elems) => {
-                    // dbg!(&elems);
                     instance.elems.extend(elems);
                 }
                 Decl::Data(eq) => instance.data.push(eq),
             }
         }
-        // dbg!(&instance.elems);
+
         instance
     })
 }

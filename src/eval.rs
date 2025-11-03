@@ -1,7 +1,7 @@
 use std::{collections::HashMap, rc::Rc};
 
 use crate::{
-    completion::subst::{Subst, Var}, context::Context, equation::Equation, id::{OperId, TypeId, VarId}, instance::{Elem, Instance}, term::{Term, TermInner}
+    completion::subst::{Subst, Var}, context::Context, equation::Equation, id::{OperId, TypeId, VarId}, instance::{Elem, Instance}, symbol_table::Names, term::{Term, TermInner}
 };
 
 /// A tableau over a schema S is a pair of:
@@ -24,10 +24,10 @@ pub struct QueryEntity {
     pub entity: Vec<TypeId>,
     pub fr: Vec<Context>,
     pub wh: Vec<Equation>,
-    pub att: Vec<(OperId, Term)>,
+    pub ret: Vec<(OperId, TermInner)>,
     // keys: t -> t'
     // transform from tableau for t' to tableau for t
-    pub keys: Vec<(OperId, VarId, Term)>,
+    pub keys: Vec<(OperId, VarId, TermInner)>,
 }
 
 pub fn eval(instance: Instance, query: Query) -> Instance {
@@ -46,7 +46,7 @@ pub fn eval(instance: Instance, query: Query) -> Instance {
 
     // attの処理
     let attrs = query.0.iter().map(|qe| {
-        qe.att.iter().map(|(operid, term)| {
+        qe.ret.iter().map(|(operid, term)| {
             // dbg!(operid, term);
             let attrs = elems.iter().filter_map(|e| {
                 if let Elem::Subst(subst) = e {
@@ -57,10 +57,15 @@ pub fn eval(instance: Instance, query: Query) -> Instance {
 
                     // TODO: to_ruleが左->右であることを仮定している
                     let rules = instance.data.iter().map(Equation::to_rule).collect::<Vec<_>>();
-                    let right = substed_term.normalize(&rules);
+                    let right_term = Term {
+                        context: Rc::new(Context::default()),
+                        names: Rc::new(Names::default()),
+                        inner: substed_term.clone(),
+                    };
+                    let right = right_term.normalize(&rules);
                     Some(Equation {
-                        context: substed_term.context.clone(),
-                        names: substed_term.names.clone(),
+                        context: Rc::new(Context::default()),
+                        names: instance.names.clone(),
                         left: Rc::new(TermInner::Fun(
                             operid.clone(),
                             vec![
@@ -90,7 +95,7 @@ pub fn eval(instance: Instance, query: Query) -> Instance {
 
                     let keys_map = HashMap::from([(
                         Var::Id(varid.clone()),
-                        term.inner.clone(),
+                        substed_term.clone(),
                     )]);
                     let keys_subst = Subst::new(keys_map);
                     let right_subst = subst.compose(&keys_subst);
@@ -107,8 +112,8 @@ pub fn eval(instance: Instance, query: Query) -> Instance {
                     }).collect::<Vec<_>>();
 
                     Some(Equation {
-                        context: substed_term.context.clone(),
-                        names: substed_term.names.clone(),
+                        context: Rc::new(Context(HashMap::new())),
+                        names: instance.names.clone(),
                         left: Rc::new(TermInner::Fun(
                             operid.clone(),
                             vec![

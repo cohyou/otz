@@ -1,0 +1,5 @@
+#instance i
+#for e: Emp
+#where wrk!e = d2;
+#return name := last!e
+#keys wrk := [d -> wrk!e]

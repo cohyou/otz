@@ -12,8 +12,8 @@ use crate::r#type::Type;
 use crate::symbol_table::SymbolTable;
 
 pub fn parse_variable<'a, Input>(
-    ctxts: &'a CtxtTable,
     types: &'a SymbolTable<TypeId>,
+    ctxts: &'a CtxtTable,
 ) -> impl Parser<Input, Output = HashMap<VarId, Type>> + 'a
 where
     Input: Stream<Token = char> + 'a,
@@ -44,7 +44,7 @@ fn test_parse_variable() {
     let ctxts = CtxtTable::new();
     let types = SymbolTable::<TypeId>::new();
     types.insert("Int".to_string(), TypeId(3)); // Mocking a type for testing
-    let r = parse_variable(&ctxts, &types).easy_parse(ctxt_example);
+    let r = parse_variable(&types, &ctxts).easy_parse(ctxt_example);
     // dbg!(vars);
     dbg!(&r);
     assert!(r.is_ok());
@@ -58,7 +58,7 @@ fn test_parse_variable2() {
     let ctxts = CtxtTable::new();
     let types = SymbolTable::<TypeId>::new();
     types.insert("Int".to_string(), TypeId(3));
-    let r = parse_variable(&ctxts, &types).easy_parse(ctxt_example);
+    let r = parse_variable(&types, &ctxts).easy_parse(ctxt_example);
     dbg!(&r);
     // dbg!(&vars);
     assert!(r.is_ok());

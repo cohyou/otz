@@ -31,11 +31,16 @@ fn main() {
 }
 
 mod qu {
-    use std::{collections::HashMap, rc::Rc, vec};
-    use crate::{equation::Equation, id::{OperId, Symbol, VarId}, term::TermInner};
-    use crate::{context::Context, id::TypeId};
+    use combine::EasyParser;
+
+    use crate::{context_table::CtxtTable, id::{OperId}, symbol_table::SymbolTable};
+    use crate::{id::TypeId};
 
     pub fn query() {
+        let types = SymbolTable::<TypeId>::new();
+        let opers = SymbolTable::<OperId>::new();
+        let ctxts = CtxtTable::new();
+
         use crate::parser::parse_instance;
         let path = "instance/i.instance";
         let instance = parse_instance(path);
@@ -45,72 +50,77 @@ mod qu {
         use crate::eval::Query;
         
         let mut q = Query::default();
-        q.0.push(query_entity());
+        q.0.push(query_entity_file(&types, &opers, &ctxts));
         let queried = eval(instance, q);
 
         println!("{}", queried);
     }
 
-        
-    fn query_entity() -> crate::eval::QueryEntity {
-        use crate::r#type::Type;
-        let ret = crate::term::Term {
-            context: Rc::new(Context(HashMap::new())),
-            names: Rc::new(HashMap::new()),
-            inner: Rc::new(
-            // 10はlast: Str なのでe.lastを表す
-            TermInner::Fun(OperId(10), vec![
-                Rc::new(TermInner::Var(VarId(100)))
-            ])),
-        };
-        // wrk = [d -> e.wrk] wrkは8
-        let key_inner = TermInner::Fun(OperId(8), vec![
-            Rc::new(TermInner::Var(VarId(100)))
-        ]);
-        let key_term = crate::term::Term {
-            context: Rc::new(Context(HashMap::new())),
-            names: Rc::new(HashMap::new()),
-            inner: Rc::new(key_inner.clone()),
-        };
-        let keys = vec![(OperId(1000), VarId(1100), key_term)];
-        crate::eval::QueryEntity {
-            entity: vec![TypeId(5)],
-            fr: vec![Context(HashMap::from([(VarId(100), Type::Unary(TypeId(5)))]))],
-            wh: vec![query_where()],
-            att: vec![(OperId(200), ret)], // Vec<(OperId, Term)>
-            // keys: t -> t'
-            // transform from tableau for t' to tableau for t
-            keys: keys, // Vec<(OperId, VarId, Term)>
-        }
+    fn query_entity_file(
+        types: &SymbolTable<TypeId>,
+        opers: &SymbolTable<OperId>,
+        ctxts: &CtxtTable,
+    ) -> crate::eval::QueryEntity {
+        use std::fs;
+        use crate::parser::query::query_entity_parser;
+        let path = "query/_.query";
+        let input = fs::read_to_string(path).expect("Failed to read query file");
+
+        let r = query_entity_parser::<combine::easy::Stream<&str>>(types, opers, ctxts)
+        .easy_parse(input.as_ref()).unwrap().0;
+        r
     }
 
-    // wrkがd2のもの
-    fn query_where() -> Equation {
-        // let types = SymbolTable::<TypeId>::init_with(TypeId(5));
-        // let opers = SymbolTable::<OperId>::init_with(OperId(8));
-        // let ctxts = CtxtTable::new();
-        // ctxts.vars.borrow_mut().insert(CtxtId(0), SymbolTable::<VarId>::init_with(VarId(11)));
+    // fn query_entity() -> crate::eval::QueryEntity {
+    //     use crate::r#type::Type;
+    //     let ret = 
+    //         // 10はlast: Str なのでe.lastを表す
+    //         TermInner::Fun(OperId(10), vec![
+    //             Rc::new(TermInner::Var(VarId(100)))
+    //         ]);
+    //     // wrk = [d -> e.wrk] wrkは8
+    //     let key_inner = TermInner::Fun(OperId(8), vec![
+    //         Rc::new(TermInner::Var(VarId(100)))
+    //     ]);
+    //     let keys = vec![(OperId(1000), VarId(1100), key_inner)];
+    //     crate::eval::QueryEntity {
+    //         entity: vec![TypeId(5)],
+    //         fr: vec![Context(HashMap::from([(VarId(100), Type::Unary(TypeId(5)))]))],
+    //         wh: vec![query_where()],
+    //         ret: vec![(OperId(200), ret)], // Vec<(OperId, Term)>
+    //         // keys: t -> t'
+    //         // transform from tableau for t' to tableau for t
+    //         keys: keys, // Vec<(OperId, VarId, Term)>
+    //     }
+    // }
 
-        // let input = "e: Emp | wrk!e = d2";  // d2はVar11
-        // eq(input, &types, &opers, &ctxts)
+    // // wrkがd2のもの
+    // fn query_where() -> Equation {
+    //     // let types = SymbolTable::<TypeId>::init_with(TypeId(5));
+    //     // let opers = SymbolTable::<OperId>::init_with(OperId(8));
+    //     // let ctxts = CtxtTable::new();
+    //     // ctxts.vars.borrow_mut().insert(CtxtId(0), SymbolTable::<VarId>::init_with(VarId(11)));
 
-        let ctxt = HashMap::new();
-        // ctxt.insert(VarId(11), Type::Unary(TypeId(6)));
-        let mut names = HashMap::new();
-        names.insert("e".to_string(), Symbol::Var(VarId(100)));
-        names.insert("d2".to_string(), Symbol::Fun(OperId(21)));
-        names.insert("wrk".to_string(), Symbol::Fun(OperId(8)));
-        let left = TermInner::Fun(OperId(8), vec![
-            Rc::new(TermInner::Var(VarId(100))),
-        ]);
-        let right = TermInner::Fun(OperId(21), vec![]);
-        Equation {
-            context: Rc::new(Context(ctxt)),
-            names: Rc::new(names),
-            left: Rc::new(left), 
-            right: Rc::new(right),
-        }
-    }
+    //     // let input = "e: Emp | wrk!e = d2";  // d2はVar11
+    //     // eq(input, &types, &opers, &ctxts)
+
+    //     let ctxt = HashMap::new();
+    //     // ctxt.insert(VarId(11), Type::Unary(TypeId(6)));
+    //     let mut names = HashMap::new();
+    //     names.insert("e".to_string(), Symbol::Var(VarId(100)));
+    //     names.insert("d2".to_string(), Symbol::Fun(OperId(21)));
+    //     names.insert("wrk".to_string(), Symbol::Fun(OperId(8)));
+    //     let left = TermInner::Fun(OperId(8), vec![
+    //         Rc::new(TermInner::Var(VarId(100))),
+    //     ]);
+    //     let right = TermInner::Fun(OperId(21), vec![]);
+    //     Equation {
+    //         context: Rc::new(Context(ctxt)),
+    //         names: Rc::new(names),
+    //         left: Rc::new(left), 
+    //         right: Rc::new(right),
+    //     }
+    // }
 }
 
 fn _comp() {

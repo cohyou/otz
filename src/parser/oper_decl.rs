@@ -18,7 +18,7 @@ where
     char::string(DIRECTIVE_SIGN)
         .and(char::string("func"))
         .and(spaces())
-        .with(oper_parser(opers, types))
+        .with(oper_parser(types, opers))
 }
 
 #[test]

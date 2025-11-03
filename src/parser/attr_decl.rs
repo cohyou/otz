@@ -19,7 +19,7 @@ where
     string(DIRECTIVE_SIGN)
         .and(string("attr"))
         .and(spaces())
-        .with(oper_parser(opers, types))
+        .with(oper_parser(types, opers))
 }
 
 #[test]

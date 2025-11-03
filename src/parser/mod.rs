@@ -19,6 +19,8 @@ mod type_decl;
 mod variable;
 mod elem;
 mod elems;
+pub mod query;
+mod instance_decl;
 
 pub const DIRECTIVE_SIGN: &'static str = "#";
 

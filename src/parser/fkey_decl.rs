@@ -19,7 +19,7 @@ where
     char::string(DIRECTIVE_SIGN)
         .and(char::string("fkey"))
         .and(spaces())
-        .with(oper_parser(opers, types))
+        .with(oper_parser(types, opers))
 }
 
 #[test]

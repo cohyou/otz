@@ -10,8 +10,8 @@ use crate::parser::r#type::type_parser;
 use crate::symbol_table::SymbolTable;
 
 pub fn oper_parser<'a, Input>(
-    table: &'a SymbolTable<OperId>,
-    type_table: &'a SymbolTable<TypeId>,
+    types: &'a SymbolTable<TypeId>,
+    opers: &'a SymbolTable<OperId>,
 ) -> impl Parser<Input, Output = Oper> + 'a
 where
     Input: Stream<Token = char> + 'a,
@@ -20,15 +20,15 @@ where
         .skip(spaces())
         .and(string(":"))
         .skip(spaces())
-        .and(type_parser(type_table, table))
+        .and(type_parser(types, opers))
         .skip(spaces())
         .skip(string("->"))
         .skip(spaces())
-        .and(type_parser(type_table, table))
+        .and(type_parser(types, opers))
         .map(move |(((c, _), dom), cod): (((Vec<_>, _), _), _)| {
             let name: String = c.into_iter().collect();
             // dbg!(&dom, &cod);
-            let id = table.assign(name);
+            let id = opers.assign(name);
             let dom = Rc::new(dom);
             let cod = Rc::new(cod);
             Oper::new(id.clone(), dom, cod)
@@ -44,7 +44,7 @@ fn test_oper_parser() {
     let table = SymbolTable::<OperId>::init_with(OperId(3));
     let type_table = SymbolTable::<TypeId>::init_with(TypeId(2));
     type_table.insert("Bool".to_string(), TypeId(2));
-    let _r = oper_parser(&table, &type_table).easy_parse(type_name_example);
+    let _r = oper_parser(&type_table, &table).easy_parse(type_name_example);
     dbg!(&table);
     assert_eq!(table.get("not"), Some(OperId(3)));
 }
@@ -58,7 +58,7 @@ fn test_oper_parser_binary_type() {
     let table = SymbolTable::<OperId>::init_with(OperId(2));
     let type_table = SymbolTable::<TypeId>::init_with(TypeId(2));
     type_table.insert("Bool".to_string(), TypeId(2));
-    let result = oper_parser(&table, &type_table).easy_parse(type_name_example);
+    let result = oper_parser(&type_table, &table).easy_parse(type_name_example);
     dbg!(&result);
     dbg!(&table);
     assert_eq!(table.get("and"), Some(OperId(3)));

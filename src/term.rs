@@ -156,10 +156,10 @@ impl Term {
                 let _ = write!(f, "]");
                 write!(f, "")
             }
-            _ => {
-                dbg!(&inner);
-                unimplemented!();
-            },
+            // _ => {
+            //     dbg!(&inner);
+            //     unimplemented!();
+            // },
         }
     }
 }

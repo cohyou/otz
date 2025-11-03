@@ -18,7 +18,7 @@ pub fn context_parser<'a, Input>(
 where
     Input: Stream<Token = char> + 'a,
 {
-    let var_parser = parse_variable::<Input>(ctxts, types);
+    let var_parser = parse_variable::<Input>(types, ctxts);
     sep_end_by(var_parser, spaces()).map(move |vss: Vec<_>| {
         let mut res_vss = HashMap::new();
         vss.into_iter().for_each(|vs| {
