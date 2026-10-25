@@ -44,7 +44,8 @@ where
         for decl in decls {
             match decl {
                 Decl::Instance(_) => {},  // opersがほしい
-                Decl::For(fr) => query_entity.fr.push(fr),
+                // 複数の#for行は、エンティティ全体で1つのcontextにまとめる
+                Decl::For(fr) => query_entity.fr.0.extend(fr.0),
                 Decl::Where(eq) => {
                     query_entity.wh.push(eq);
                 }
@@ -74,7 +75,7 @@ mod tests {
         assert!(result.is_ok(), "Parser failed: {:?}", result);
         let (query_entity, remaining) = result.unwrap();
         assert!(remaining.is_empty(), "Parser did not consume all input");
-        assert_eq!(query_entity.fr.len(), 1);
+        assert_eq!(query_entity.fr.0.len(), 1);
         assert_eq!(query_entity.wh.len(), 1);
         assert_eq!(query_entity.ret.len(), 1);
         assert_eq!(query_entity.keys.len(), 1);

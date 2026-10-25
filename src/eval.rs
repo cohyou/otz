@@ -22,7 +22,7 @@ pub struct Query(pub Vec<QueryEntity>);
 #[derive(Default, Debug)]
 pub struct QueryEntity {
     pub entity: Vec<TypeId>,
-    pub fr: Vec<Context>,
+    pub fr: Context,
     pub wh: Vec<Equation>,
     pub ret: Vec<(OperId, TermInner)>,
     // keys: t -> t'
@@ -145,68 +145,126 @@ pub fn eval(instance: Instance, query: Query) -> Instance {
 /// fr(t) := {−−−→ v_i : s_i}:
 /// eval(Q)(I)(t) := { [−−−−→v_i→e_i] | I⊢eq[−−−−→v_i→e_i], ∀eq ∈ wh(t), ∀e_i ∈ I_EA(s_i)}
 fn eval_generators(instance: &Instance, query_entity: &QueryEntity) -> Vec<Subst> {
-    query_entity
-        .fr
-        .iter()
-        .map(|context| {
-            let substs = instance
-                .elems
-                .iter().filter_map(|e| {
-                    // frからsubstを作る
-                    let init = HashMap::new();
-                    // for句のそれぞれのentityについて
-                    let subst = context
-                        .0
-                        .iter().try_fold(init, |mut subst, (varid, tp)| {
-                            if let Elem::Oper(e) = e {
-                                (e.cod.as_ref() == tp).then(|| {
-                                    subst.insert(
-                                        Var::Id(varid.clone()),
-                                        Rc::new(TermInner::Fun(e.id.clone(), vec![])),
-                                    );
-                                    subst
-                                })
-                            } else {
-                                None
-                            }
+    // fr(t)の各変数に対して、型の合う要素を独立に割り当てた環境(直積)をすべて作る。
+    let substs = query_entity.fr.0.iter().fold(
+        vec![Subst::default()],
+        |partials, (varid, tp)| {
+            let mut next = Vec::new();
+            for partial in &partials {
+                for e in &instance.elems {
+                    if let Elem::Oper(op) = e {
+                        if op.cod.as_ref() == tp {
+                            let mut m = partial.0.clone();
+                            m.insert(
+                                Var::Id(varid.clone()),
+                                Rc::new(TermInner::Fun(op.id.clone(), vec![])),
+                            );
+                            next.push(Subst::new(m));
+                        }
+                    }
+                }
+            }
+            next
+        },
+    );
 
-                        })
-                        .map(|m| Subst::new(m));
-                    subst
-                })
-                .collect::<Vec<_>>();
+    // すべての等式を満たす必要がある(all)
+    substs
+        .into_iter()
+        .filter(|subst| {
+            query_entity.wh.iter().all(|eq| {
+                let left_substed = eq.left_term().substitute(subst);
+                let right_substed = eq.right_term().substitute(subst);
 
-            // 一回Vecにせずに繋げた方が効率的だが分かりやすさのため一時的にこうする
-            let substs = substs
-                .iter()
-                .filter(|subst| {
-                    // すべての等式を満たす必要がある(all)
-                    query_entity.wh.iter().all(|eq| {
-                        let left_substed = eq.left_term().substitute(&subst);
-                        let right_substed = eq.right_term().substitute(&subst);
-
-                        let substituted_equation = Equation {
-                            context: left_substed.context,
-                            names: left_substed.names,
-                            left: left_substed.inner,
-                            right: right_substed.inner,
-                        };
-                        println!("substituted_equation: {}", substituted_equation);
-                        // substituted_equationがsaturatedから導けるかどうか
-                        // TODO: 同じ型だとcompleteが複数回走るので効率が悪い
-                        instance.deducible(&substituted_equation)
-                    })
-                })
-                .cloned()
-                .collect::<Vec<_>>();
-            substs
+                let substituted_equation = Equation {
+                    context: left_substed.context,
+                    names: left_substed.names,
+                    left: left_substed.inner,
+                    right: right_substed.inner,
+                };
+                println!("substituted_equation: {}", substituted_equation);
+                // substituted_equationがsaturatedから導けるかどうか
+                // TODO: 同じ型だとcompleteが複数回走るので効率が悪い
+                instance.deducible(&substituted_equation)
+            })
         })
-        .flatten()
         .collect()
 }
 
 impl TermInner {
     pub fn var(varid: VarId) -> Self {
         TermInner::Var(varid)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::oper::Oper;
+    use crate::r#type::Type;
+
+    fn make_oper_elem(id: usize, cod: &Type) -> Elem {
+        Elem::Oper(Oper::new(
+            OperId(id),
+            Rc::new(Type::Unary(TypeId(0))),
+            Rc::new(cod.clone()),
+        ))
+    }
+
+    /// #for x y: Tp のように同じ型の複数変数がある場合、
+    /// それぞれ独立に要素を割り当てた直積の環境がすべて得られること。
+    #[test]
+    fn test_eval_generators_cross_product_same_type() {
+        let tp = Type::Unary(TypeId(1));
+        let instance = Instance {
+            names: Default::default(),
+            schema: Default::default(),
+            elems: vec![make_oper_elem(1, &tp), make_oper_elem(2, &tp)],
+            data: vec![],
+        };
+
+        let mut fr = Context::default();
+        fr.0.insert(VarId(0), tp.clone());
+        fr.0.insert(VarId(1), tp.clone());
+
+        let query_entity = QueryEntity {
+            fr,
+            ..Default::default()
+        };
+
+        let substs = eval_generators(&instance, &query_entity);
+        // 2変数 x 2要素 = 4通りの直積になっているはず(修正前は2通りだった)
+        assert_eq!(substs.len(), 4);
+    }
+
+    /// 型が異なる複数の#for行(エンティティ間のjoin)も、
+    /// マージされた1つのcontextとして直積が取れること。
+    #[test]
+    fn test_eval_generators_cross_product_different_types() {
+        let tp1 = Type::Unary(TypeId(1));
+        let tp2 = Type::Unary(TypeId(2));
+        let instance = Instance {
+            names: Default::default(),
+            schema: Default::default(),
+            elems: vec![
+                make_oper_elem(1, &tp1),
+                make_oper_elem(2, &tp1),
+                make_oper_elem(3, &tp2),
+            ],
+            data: vec![],
+        };
+
+        let mut fr = Context::default();
+        fr.0.insert(VarId(0), tp1.clone());
+        fr.0.insert(VarId(1), tp2.clone());
+
+        let query_entity = QueryEntity {
+            fr,
+            ..Default::default()
+        };
+
+        let substs = eval_generators(&instance, &query_entity);
+        // tp1の要素2つ x tp2の要素1つ = 2通り
+        assert_eq!(substs.len(), 2);
     }
 }
