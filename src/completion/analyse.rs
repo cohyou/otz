@@ -201,4 +201,34 @@ mod tests {
         let rule = analyse(equation.context, equation.names, equation.left, equation.right);
         println!("{}", rule.unwrap());
     }
+
+    /// 優先順位 a < g < h < f のもとで、lpo_gr が LPO の定義どおりに判定することを確認する。
+    /// 変数を含まない項には、ダミーの文脈 `z: Int` を付けている。
+    #[rstest]
+    // 誤り1（修正前は否定が逆）: x が出現する項は x より大きい
+    #[case("x: Int | f![x a;]", "x: Int | x", true, false)]
+    // 誤り2（修正前は derive(Ord) で比較）: 先頭の演算子は h > g だが、
+    // g(h(h(a))) は h(a) を部分項に含むので t の方が大きい
+    #[case("z: Int | f![h!a; a;]", "z: Int | f![g!h!h!a; a;]", false, true)]
+    // s を引数に含む項は s より大きい
+    #[case("z: Int | f![h!a; a;]", "z: Int | f![h!a; f![h!a; a;]]", false, true)]
+    // 可換律の両辺は比較不能（変数番号で大小を決めてはいけない）
+    #[case("x y: Int | f![y x]", "x y: Int | f![x y]", false, false)]
+    fn test_lpo_gr(
+        #[case] s: &str,
+        #[case] t: &str,
+        #[case] s_gt_t: bool,
+        #[case] t_gt_s: bool,
+    ) {
+        use crate::{completion::analyse::lpo_gr, util::tm};
+
+        let types = types(vec!["Int"]);
+        let opers = opers(vec!["a", "g", "h", "f"]);
+        let ctxts = CtxtTable::new();
+
+        let s = tm(s, &types, &opers, &ctxts).inner.clone();
+        let t = tm(t, &types, &opers, &ctxts).inner.clone();
+        assert_eq!(lpo_gr(s.clone(), t.clone()), s_gt_t);
+        assert_eq!(lpo_gr(t, s), t_gt_s);
+    }
 }
