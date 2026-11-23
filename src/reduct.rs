@@ -385,23 +385,25 @@ mod tests {
     #[rstest]
     #[case(
         "x z: Int | plus![0 plus![x z]]", vec![],
-        "x: Int | plus![0 x] -> x")]
+        "x: Int | plus![0 x] -> x", true)]
     #[case(
         "xx yy zz z: Int | plus![plus![xx yy] plus![zz z]]", vec![],
-        "x y z: Int | plus![plus![x y] z] -> plus![x plus![y z]]")]
+        "x y z: Int | plus![plus![x y] z] -> plus![x plus![y z]]", true)]
     #[case(
         "x y z: Int | plus![minus!x plus![plus![x y] z]]", vec![1], 
-        "x y z: Int | plus![plus![x y] z] -> plus![x plus![y z]]")]
+        "x y z: Int | plus![plus![x y] z] -> plus![x plus![y z]]", true)]
     #[case(
         "x y z: Int | plus![minus!x plus![x plus![y z]]]", vec![], 
-        "x y: Int | plus![minus!x plus![x y]] -> y")]
+        "x y: Int | plus![minus!x plus![x y]] -> y", true)]
+    // -(x+y) + (x+(y+z)) は根で -X + X の形をしていないのでマッチしない
     #[case(
         "x y z: Int | plus![minus!plus![x y] plus![x plus![y z]]]", vec![], 
-        "x: Int | plus![minus!x x] -> 0")]
+        "x: Int | plus![minus!x x] -> 0", false)]
     fn test_find_redex_from(
         #[case] term_input: &str,
         #[case] pos: Vec<usize>,
         #[case] rule_input: &str,
+        #[case] expect_redex: bool,
     ) {
         use crate::{
             completion::critical_pairs::prepare_rules,
@@ -423,7 +425,10 @@ mod tests {
         let rule =
             &prepare_rules(&vec![rule])[0].make_vars_ruled(crate::completion::rule::RuleKind::NotSet);
         let redexes = subterm.find_redex_from(&rule);
-        println!("redexes: {}", &redexes.unwrap());
+        assert_eq!(redexes.is_some(), expect_redex);
+        if let Some(redexes) = redexes {
+            println!("redexes: {}", &redexes);
+        }
     }
 
     #[rstest]

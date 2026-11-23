@@ -252,7 +252,7 @@ mod tests {
     #[case("x0: Int | x0", "x1: Int | g![x1]")]
     #[case("x1: Int | g![x1]", "x0: Int | x0")]
     // #[case("f![x0]", "f![g![x1]]")]
-    #[case("f![x0 x1]", "f![g![x1] g![x2]]")]
+    #[case("x0 x1: Int | f![x0 x1]", "x1 x2: Int | f![g![x1] g![x2]]")]
     fn test_unify(#[case] t1: &str, #[case] t2: &str) {
         let types = types(vec!["Int"]);
         let opers = opers(vec!["f", "g"]);
@@ -262,6 +262,7 @@ mod tests {
 
         let subst = unify(Rc::new(term2), Rc::new(term1));
         dbg!(&subst);
+        assert!(subst.is_some());
     }
 
     #[test]
