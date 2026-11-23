@@ -10,19 +10,19 @@
 - `src/main.rs`: `parse_instance`、クエリファイルのパース、`eval` の実行と出力という試行経路がある。
 - `src/schema.rs`: `Schema { theory, entities, fkeys, attrs, constraints }`。
 - `src/instance.rs`: `Instance { names, schema, elems, data }`。`elems` は `Elem::Oper` / `Elem::Subst`、`data` は `Vec<Equation>`。
-- `src/eval.rs`: `Query(Vec<QueryEntity>)`、`QueryEntity { entity, fr, wh, ret, keys }`、`eval(instance, query) -> Instance`。インスタンスの `saturate()` を呼び、クエリ環境を列挙して出力インスタンスを構築している。
+- `src/eval.rs`: `Query(Vec<QueryEntity>)`、`QueryEntity { entity, fr, wh, ret, keys }`、`eval(instance, query) -> Instance`。インスタンスの `saturate()` を呼び、マッチを列挙して出力インスタンスを構築している。マッチの列挙は `matches(instance, fr, wh) -> Vec<Match>`（`QueryEntity::matches`）として独立した API になっている。
 - `src/parser/query/`: `#for` / `#where` / `#return` / `#keys` に関するパーサー。
 - `src/completion/`, `src/reduct.rs`, `src/saturate.rs`: 等式補完、項書換え、飽和に関連する実装。
 
 ## 重要な差分
 
-**今回のアクション Query は、現行の `eval` による Uber-flower 型のクエリ評価と同一の API ではない。** 現行 `eval` は出力 `Instance` を返す。提案中のアクション実行は個別のマッチ（証人）を取り出して、それを Patch に引き渡す必要がある。既存構造を再利用できるかを先に検証する。
+**アクションの Query は、`eval` による Uber-flower 型のクエリ評価と同一の API ではない。** `eval` は出力 `Instance` を返すが、アクション実行には個別のマッチ（証人）が必要で、それを Patch に引き渡す。マッチは `eval::matches` で直接取り出せる（バックログ C-03）。
 
 具体的な差分：
 
 1. `QueryEntity.fr` は単一の `Context`。PR #1（マージ済み）で、`#for` 句の複数変数・複数エンティティを直積として列挙するようになった。
-2. `src/eval.rs` の `eval_generators` は `Instance.elems` の要素を使う実装。数学的な `Hom(F_Q,I)` との一致、複数マッチ・非単射マッチ・型理論の評価をテストする必要がある。
-3. `src/reduct.rs` に `TODO: 本来はSchemaのconstraintsも必要`、`Equation::to_rule` に規則の向き決定が必要との TODO がある。MVP の検証でこの前提に依存する場合は要対応。なお Knuth–Bendix 補完（`completion::complete`）の規則の向き付けは LPO（`completion/analyse.rs`）で行う。LPO で比較できない等式（可換律など）は規則にせず保留するため、その場合の補完結果は不完全になる（停止性を優先し、健全性は保つ）。
+2. `eval::matches` は、`#for` の各変数の行き先を `Instance.elems`（`#elem` で宣言した生成元）から選ぶ。`#where` の等式は、データの等式とスキーマの公理をまとめて補完した規則（`Instance::equality_rules`）で判定する。サンプルのインスタンスで、成立する／しない、複数のマッチ、非単射のマッチ、外部キーを辿る等式、属性の等式、結合をテストしている。生成元ではない項（データが無い要素の `wrk!e7` など）は、マッチの行き先にならない。type-side の値（`Int` 型の変数など）を行き先にするマッチは未対応。
+3. 等式の判定（`Instance::equality_rules`、`Instance::deducible`）は、データの等式とスキーマの公理（`constraints`）の両方を使う。`Equation::to_rule`（向きを決めずに規則にする）は使われなくなった。Knuth–Bendix 補完（`completion::complete`）の規則の向き付けは LPO（`completion/analyse.rs`）で行う。LPO で比較できない等式（可換律など）は規則にせず保留するため、その場合の補完結果は不完全になる（停止性を優先し、健全性は保つ）。LPO の優先順位では、定数（0 引数の記号）を全ての関数記号より小さくしている。そのため `wrk(e2) = d2` は `wrk(e2) → d2` の向きになり、正規形はできるだけインスタンスの要素になる。
 4. `src/instance.rs` の構造には、独立した永続 Entity ID と原子的 Entity/Equation Patch API は見えていない（ただし別ファイルや既存機能に存在しないと断定はしない）。
 5. `src/main.rs` は実行例の入口で、計画探索のエンドツーエンド経路はこの範囲では確認できなかった。
 
@@ -37,8 +37,8 @@
 
 多くのテストは `dbg!` や `println!` で出力するだけで、アサーションを持たない。回帰テストとして機能させるには、期待値を書き足していく必要がある。
 
-## 推奨する最初の作業
+## 次の作業
 
-- 既存の評価結果の `Instance` と「マッチ証人」の抽出を比較する小テストを作る。
-- type-side・スキーマ制約と既存の `saturate` の関係を確認する。
-- そのうえで `Query → Match → Patch` の最初の一歩を現行構造に載せる。
+- type-side の値を行き先にするマッチと、非単射のマッチを禁止したい場合の扱いを決める（C-04）。
+- `Match` を Symbolic Patch に引き渡す（D-01、D-02）。
+- `saturate()` は現状インスタンスを複製するだけなので、スキーマの公理による飽和との関係を整理する。
