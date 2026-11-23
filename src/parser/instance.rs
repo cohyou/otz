@@ -55,7 +55,7 @@ where
 fn test_parse_instance() {
     use combine::EasyParser;
 
-    let f = "instance/i.instance";
+    let f = "example/instance/i.instance";
     let input = std::fs::read_to_string(f).expect("Failed to read");
 
     let types = SymbolTable::<TypeId>::new();

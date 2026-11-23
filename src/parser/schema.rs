@@ -81,7 +81,7 @@ mod tests {
     
     #[test]
     fn test_schema_parser() {
-        let f = "schema/s.schema";
+        let f = "example/schema/s.schema";
         let schema_example = std::fs::read_to_string(f).expect("Failed to read");
 
         let types = SymbolTable::<TypeId>::new();
