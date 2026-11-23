@@ -19,12 +19,24 @@ pub fn complete(eqs: Vec<Equation>, limit: usize) -> Vec<Rule> {
     let mut step = 1;
     let mut eqs = BinaryHeap::from(eqs);
     let mut rules = vec![];
+    // 向き付けできなかった（LPOで比較不能な）等式。規則が増えたら再挑戦する
+    let mut postponed: Vec<Equation> = vec![];
 
     while !eqs.is_empty() && (limit == 0 || step <= limit) {
         // dbg!(step);
         let eq = eqs.pop().unwrap();
         // println!("POPED: {}", &eq);
-        let (new_eqs, new_rules) = complete_inner(step, &eq, &mut rules);
+        let (new_eqs, new_rules) = match complete_inner(step, &eq, &mut rules) {
+            Some(result) => result,
+            None => {
+                postponed.push(eq);
+                step += 1;
+                continue;
+            }
+        };
+        if new_rules != rules {
+            eqs.extend(postponed.drain(..));
+        }
 
         eqs.extend(new_eqs);
         // disp_eq(&eqs);
@@ -50,16 +62,19 @@ pub fn complete(eqs: Vec<Equation>, limit: usize) -> Vec<Rule> {
     rules
 }
 
-fn complete_inner(_step: usize, eq: &Equation, rules: &Vec<Rule>) -> (Vec<Equation>, Vec<Rule>) {
+/// 向き付けできない等式の場合は None を返す
+fn complete_inner(_step: usize, eq: &Equation, rules: &Vec<Rule>) -> Option<(Vec<Equation>, Vec<Rule>)> {
     let mut rules = rules.clone();
 
     let left = eq.left_term().normalize(&rules);
     let right = eq.right_term().normalize(&rules);
     // println!("left: {}  | right: {}", &left, &right);
 
-    let mut new_eqs = vec![];
-    (left != right).then(|| {
-        let new_rule = analyse(eq.context.clone(), eq.names.clone(), left.inner.clone(), right.inner.clone()).unwrap();
+    if left == right {
+        return Some((vec![], rules));
+    }
+    let new_rule = analyse(eq.context.clone(), eq.names.clone(), left.inner.clone(), right.inner.clone())?;
+    let new_eqs = {
         // println!("new_rule: {}", new_rule);
 
         // α→βと既存rules内のrule毎の危険対の集合を作る
@@ -95,15 +110,12 @@ fn complete_inner(_step: usize, eq: &Equation, rules: &Vec<Rule>) -> (Vec<Equati
         // dispv("AFTER RULES", &rules);
         rules.retain(|r| r.before != r.after);
 
-        new_eqs = new_cps.iter().map(|cp| 
+        new_cps.iter().map(|cp| 
             Equation { context: cp.context.clone(), names: cp.names.clone(), left: cp.p.clone(), right: cp.q.clone() })
-            .collect::<Vec<_>>();
-        // dispv("new_eqs before:", &new_eqs);
+            .collect::<Vec<_>>()
+    };
 
-        // eqs.extend(new_eqs);
-    });
-
-    (new_eqs, rules)
+    Some((new_eqs, rules))
 }
 
 fn dedup_eqs(eqs: &BinaryHeap<Equation>) -> BinaryHeap<Equation> {

@@ -31,9 +31,12 @@ pub fn analyse(
     if lpo_gr(left.clone(), right.clone()) {
         // left > right
         Some(Rule::new(context, names, left.clone(), right.clone()))
-    } else {
+    } else if lpo_gr(right.clone(), left.clone()) {
         // left < right
         Some(Rule::new(context, names, right.clone(), left.clone()))
+    } else {
+        // 比較不能（例: 可換律）。停止性を壊すので規則にはしない
+        None
     }
 }
 
