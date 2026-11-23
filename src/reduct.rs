@@ -19,26 +19,25 @@ use crate::{
 use crate::util::dispv;
 
 impl Instance {
+    /// インスタンスで成り立つ等式を判定するための書換え規則。
+    /// データの等式とスキーマの公理（constraints）をまとめて補完する。
+    /// 向き付けできない等式が残った場合は不完全になる（健全性は保たれる）。
+    pub fn equality_rules(&self) -> Vec<Rule> {
+        let eqs = self
+            .data
+            .iter()
+            .chain(self.schema.constraints.iter())
+            .cloned()
+            .collect::<Vec<_>>();
+        complete(eqs, 0)
+    }
+
+    /// 等式 eq がインスタンスから導けるか。
+    /// 何度も判定する場合は、equality_rules() を一度だけ計算して
+    /// Equation::holds_under を使う方が効率がよい。
+    #[allow(dead_code)]
     pub fn deducible(&self, eq: &Equation) -> bool {
-        // TODO: 本来はSchemaのconstraintsも必要
-        let eq_tp = match eq.left.as_ref() {
-            TermInner::Fun(operid, _) => {
-                self.schema.fkeys.iter().find(|op| &op.id == operid).map(|oper| oper.cod.clone())
-            }
-            _ => unimplemented!()
-        };
-        let eqs = self.data.iter().filter(|e| {
-            let e_tp = match e.left.as_ref() {
-                TermInner::Fun(operid, _) => {
-                    self.schema.fkeys.iter().find(|op| &op.id == operid).map(|oper| oper.cod.clone())
-                }
-                _ => unimplemented!()
-            };
-            e_tp == eq_tp
-        }).cloned().collect::<Vec<_>>();
-        // dispv("filtered_eqs:", &eqs);
-        let rules = complete(eqs, 0);
-        eq.is_reducible(&rules)
+        eq.holds_under(&self.equality_rules())
     }
 }
 
@@ -53,12 +52,13 @@ impl Equation {
         )
     }
 
-    fn is_reducible(&self, rules: &Vec<Rule>) -> bool {
-        // dispv("is_reducible rules:", rules);
+    /// 両辺を rules で正規化した結果が一致するか
+    pub fn holds_under(&self, rules: &Vec<Rule>) -> bool {
+        // dispv("holds_under rules:", rules);
 
         let left = self.left_term().normalize(rules);
         let right = self.right_term().normalize(rules);
-        println!("is_reducible {} ?? {}", left, right);
+        // println!("holds_under {} ?? {}", left, right);
         left == right
     }
 }

@@ -5,7 +5,7 @@ mod elem_decl;
 mod eq_decl;
 pub mod equation;
 mod fkey_decl;
-mod instance;
+pub(crate) mod instance;
 pub mod oper;
 mod oper_decl;
 pub mod rule;
