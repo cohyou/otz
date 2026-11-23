@@ -1,7 +1,7 @@
 // use core::panic;
 use std::{cmp::Ordering, rc::Rc};
 
-use crate::{context::Context, completion::rule::Rule, completion::subst::Var, symbol_table::Names, term::{TermInner}};
+use crate::{context::Context, completion::rule::Rule, completion::subst::Var, id::OperId, symbol_table::Names, term::{TermInner}};
 
 // enum PartialOrdering {
 //     Greater,
@@ -119,7 +119,7 @@ impl TermInner {
 }
 
 /// 辞書式経路順序 (LPO) による厳密な比較 t1 >_lpo t2。
-/// 演算子の優先順位は OperId の大小。Int/Str は全ての関数適用より小さい定数とみなし、
+/// 演算子の優先順位は precedence を参照。Int/Str は全ての関数適用より小さい定数とみなし、
 /// 異なる定数同士は比較不能とする。
 fn lpo_gr(t1: Rc<TermInner>, t2: Rc<TermInner>) -> bool {
     use crate::completion::subst::Var::{Id, Ruled};
@@ -136,7 +136,7 @@ fn lpo_gr(t1: Rc<TermInner>, t2: Rc<TermInner>) -> bool {
                 || match t {
                     Fun(g, args2) => {
                         let dominates_args = || args2.iter().all(|tj| lpo_gr(t1.clone(), tj.clone()));
-                        if f > g {
+                        if precedence(f, args1) > precedence(g, args2) {
                             // (b) f > g かつ全ての tj について s > tj
                             dominates_args()
                         } else if f == g && args1.len() == args2.len() {
@@ -158,6 +158,15 @@ fn lpo_gr(t1: Rc<TermInner>, t2: Rc<TermInner>) -> bool {
             unimplemented!();
         }
     }
+}
+
+/// 演算子の優先順位。0 引数の記号（定数。インスタンスの要素など）は全ての関数記号より小さく、
+/// 同じ種類の中では OperId の大小で比べる。
+/// 定数を小さくすることで、`wrk(e2) = d2` が `wrk(e2) → d2` の向きになり、
+/// 正規形ができるだけ生成元（インスタンスの要素）になる。
+/// OperId ごとに引数の数は決まっているので、これは記号の上の全順序になる。
+fn precedence<'a>(f: &'a OperId, args: &[Rc<TermInner>]) -> (bool, &'a OperId) {
+    (!args.is_empty(), f)
 }
 
 fn lpo_gr_eq(t1: Rc<TermInner>, t2: Rc<TermInner>) -> bool {
@@ -205,7 +214,8 @@ mod tests {
         println!("{}", rule.unwrap());
     }
 
-    /// 優先順位 a < g < h < f のもとで、lpo_gr が LPO の定義どおりに判定することを確認する。
+    /// 優先順位 a < c < g < h < f（定数 a, c は全ての関数記号より小さい）のもとで、
+    /// lpo_gr が LPO の定義どおりに判定することを確認する。
     /// 変数を含まない項には、ダミーの文脈 `z: Int` を付けている。
     #[rstest]
     // 誤り1（修正前は否定が逆）: x が出現する項は x より大きい
@@ -217,6 +227,9 @@ mod tests {
     #[case("z: Int | f![h!a; a;]", "z: Int | f![h!a; f![h!a; a;]]", false, true)]
     // 可換律の両辺は比較不能（変数番号で大小を決めてはいけない）
     #[case("x y: Int | f![y x]", "x y: Int | f![x y]", false, false)]
+    // 定数は全ての関数記号より小さい: c は g より後に宣言されている（OperId が大きい）が、
+    // g(a) > c となる。これにより wrk(e2) = d2 は wrk(e2) → d2 の向きになる
+    #[case("z: Int | g!a;", "z: Int | c;", true, false)]
     fn test_lpo_gr(
         #[case] s: &str,
         #[case] t: &str,
@@ -226,7 +239,7 @@ mod tests {
         use crate::{completion::analyse::lpo_gr, util::tm};
 
         let types = types(vec!["Int"]);
-        let opers = opers(vec!["a", "g", "h", "f"]);
+        let opers = opers(vec!["a", "g", "h", "f", "c"]);
         let ctxts = CtxtTable::new();
 
         let s = tm(s, &types, &opers, &ctxts).inner.clone();
