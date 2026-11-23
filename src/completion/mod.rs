@@ -110,9 +110,13 @@ fn complete_inner(_step: usize, eq: &Equation, rules: &Vec<Rule>) -> Option<(Vec
         // dispv("AFTER RULES", &rules);
         rules.retain(|r| r.before != r.after);
 
-        new_cps.iter().map(|cp| 
+        let new_eqs = new_cps.iter().map(|cp| 
             Equation { context: cp.context.clone(), names: cp.names.clone(), left: cp.p.clone(), right: cp.q.clone() })
-            .collect::<Vec<_>>()
+            .collect::<Vec<_>>();
+        // dispv("new_eqs before:", &new_eqs);
+
+        // eqs.extend(new_eqs);
+        new_eqs
     };
 
     Some((new_eqs, rules))
