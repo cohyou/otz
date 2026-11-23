@@ -119,15 +119,14 @@ impl TermInner {
 /// 演算子の優先順位は OperId の大小。Int/Str は全ての関数適用より小さい定数とみなし、
 /// 異なる定数同士は比較不能とする。
 fn lpo_gr(t1: Rc<TermInner>, t2: Rc<TermInner>) -> bool {
+    use crate::completion::subst::Var::{Id, Ruled};
     use TermInner::{Fun, Int, RuledVar, Str, Var};
     match (t1.as_ref(), t2.as_ref()) {
         // 変数は何よりも大きくならない
         (Var(_) | RuledVar(_, _, _), _) => false,
         // s > x  ⇔  x が s に出現し、かつ s ≠ x（左が変数のケースは上で除外済み）
-        (s, Var(x)) => occur(&crate::completion::subst::Var::Id(x.clone()), s),
-        (s, RuledVar(x, rid, kind)) => {
-            occur(&crate::completion::subst::Var::Ruled(x.clone(), *rid, kind.clone()), s)
-        }
+        (s, Var(x)) => occur(&Id(x.clone()), s),
+        (s, RuledVar(x, rid, kind)) => occur(&Ruled(x.clone(), *rid, kind.clone()), s),
         (Fun(f, args1), t) => {
             // (a) ある引数 si が si ≥ t
             args1.iter().any(|si| lpo_gr_eq(si.clone(), t2.clone()))
