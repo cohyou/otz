@@ -68,7 +68,7 @@ mod tests {
         let ctxts = CtxtTable::new();
         use combine::EasyParser;
 
-        let f = "query/_.query";
+        let f = "example/query/_.query";
         let input = std::fs::read_to_string(f).expect("Failed to read");
 
         let result = query_entity_parser::<combine::easy::Stream<&str>>(&types, &opers, &ctxts).easy_parse(input.as_ref());

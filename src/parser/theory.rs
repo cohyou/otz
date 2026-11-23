@@ -98,7 +98,7 @@ mod tests {
         let opers = SymbolTable::<OperId>::new();
         let ctxts = CtxtTable::new();
 
-        let f = "theory/test.theory";
+        let f = "example/theory/test.theory";
         let theory_example = std::fs::read_to_string(f).expect("Failed to read");
         let mut parser = theory_parser::<Stream<&str>>(&types, &opers, &ctxts);
         let result = parser.easy_parse(theory_example.as_ref());
