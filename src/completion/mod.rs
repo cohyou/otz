@@ -19,12 +19,24 @@ pub fn complete(eqs: Vec<Equation>, limit: usize) -> Vec<Rule> {
     let mut step = 1;
     let mut eqs = BinaryHeap::from(eqs);
     let mut rules = vec![];
+    // 向き付けできなかった（LPOで比較不能な）等式。規則が増えたら再挑戦する
+    let mut postponed: Vec<Equation> = vec![];
 
     while !eqs.is_empty() && (limit == 0 || step <= limit) {
         // dbg!(step);
         let eq = eqs.pop().unwrap();
         // println!("POPED: {}", &eq);
-        let (new_eqs, new_rules) = complete_inner(step, &eq, &mut rules);
+        let (new_eqs, new_rules) = match complete_inner(step, &eq, &mut rules) {
+            Some(result) => result,
+            None => {
+                postponed.push(eq);
+                step += 1;
+                continue;
+            }
+        };
+        if new_rules != rules {
+            eqs.extend(postponed.drain(..));
+        }
 
         eqs.extend(new_eqs);
         // disp_eq(&eqs);
@@ -50,16 +62,19 @@ pub fn complete(eqs: Vec<Equation>, limit: usize) -> Vec<Rule> {
     rules
 }
 
-fn complete_inner(_step: usize, eq: &Equation, rules: &Vec<Rule>) -> (Vec<Equation>, Vec<Rule>) {
+/// 向き付けできない等式の場合は None を返す
+fn complete_inner(_step: usize, eq: &Equation, rules: &Vec<Rule>) -> Option<(Vec<Equation>, Vec<Rule>)> {
     let mut rules = rules.clone();
 
     let left = eq.left_term().normalize(&rules);
     let right = eq.right_term().normalize(&rules);
     // println!("left: {}  | right: {}", &left, &right);
 
-    let mut new_eqs = vec![];
-    (left != right).then(|| {
-        let new_rule = analyse(eq.context.clone(), eq.names.clone(), left.inner.clone(), right.inner.clone()).unwrap();
+    if left == right {
+        return Some((vec![], rules));
+    }
+    let new_rule = analyse(eq.context.clone(), eq.names.clone(), left.inner.clone(), right.inner.clone())?;
+    let new_eqs = {
         // println!("new_rule: {}", new_rule);
 
         // α→βと既存rules内のrule毎の危険対の集合を作る
@@ -95,15 +110,16 @@ fn complete_inner(_step: usize, eq: &Equation, rules: &Vec<Rule>) -> (Vec<Equati
         // dispv("AFTER RULES", &rules);
         rules.retain(|r| r.before != r.after);
 
-        new_eqs = new_cps.iter().map(|cp| 
+        let new_eqs = new_cps.iter().map(|cp| 
             Equation { context: cp.context.clone(), names: cp.names.clone(), left: cp.p.clone(), right: cp.q.clone() })
             .collect::<Vec<_>>();
         // dispv("new_eqs before:", &new_eqs);
 
         // eqs.extend(new_eqs);
-    });
+        new_eqs
+    };
 
-    (new_eqs, rules)
+    Some((new_eqs, rules))
 }
 
 fn dedup_eqs(eqs: &BinaryHeap<Equation>) -> BinaryHeap<Equation> {
@@ -186,11 +202,33 @@ pub mod tests {
         util::{dispv, eq, opers, types},
     };
 
+    /// 群の公理を補完すると、よく知られた10本の完備な書換え系になる
     #[test]
     fn test_complete() {
-        // 59で10rules
-        let rules = complete(complete_eqs(),21);
+        let input = complete_eqs();
+        let rules = complete(input.clone(), 0);
         dispv("FINAL RULES:", &rules);
+        assert_eq!(rules.len(), 10);
+        assert_all_joinable(&input, &rules);
+    }
+
+    /// Knuth–Bendix の古典例: 群の3公理だけから同じ10本の規則が得られる
+    #[test]
+    fn test_complete_group_from_three_axioms() {
+        let input = super::eqs();
+        let rules = complete(input.clone(), 0);
+        dispv("FINAL RULES:", &rules);
+        assert_eq!(rules.len(), 10);
+        assert_all_joinable(&input, &rules);
+        assert_all_joinable(&complete_eqs(), &rules);
+    }
+
+    fn assert_all_joinable(eqs: &[Equation], rules: &Vec<crate::completion::rule::Rule>) {
+        for eq in eqs {
+            let left = eq.left_term().normalize(rules);
+            let right = eq.right_term().normalize(rules);
+            assert_eq!(left, right, "not joinable: {}", eq);
+        }
     }
 
     pub fn complete_eqs() -> Vec<Equation> {
@@ -207,7 +245,7 @@ pub mod tests {
                            "x y: Int | p![y p![m!y x]] = x", // y + (-y + x) = x
                            "| m!o; = o;", // -0 = 0
                            "x: Int | m!m!x = x", // --x = x
-                           "x y: Int | m!p![x y] = p![m!x m!y]", // -(x + y) = -y + -x
+                           "x y: Int | m!p![x y] = p![m!y m!x]", // -(x + y) = -y + -x
                         ];
         input_rules.iter()
             .map(|r| eq(r, &types, &opers, &ctxts)).collect()
