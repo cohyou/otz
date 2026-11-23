@@ -202,11 +202,33 @@ pub mod tests {
         util::{dispv, eq, opers, types},
     };
 
+    /// 群の公理を補完すると、よく知られた10本の完備な書換え系になる
     #[test]
     fn test_complete() {
-        // 59で10rules
-        let rules = complete(complete_eqs(),21);
+        let input = complete_eqs();
+        let rules = complete(input.clone(), 0);
         dispv("FINAL RULES:", &rules);
+        assert_eq!(rules.len(), 10);
+        assert_all_joinable(&input, &rules);
+    }
+
+    /// Knuth–Bendix の古典例: 群の3公理だけから同じ10本の規則が得られる
+    #[test]
+    fn test_complete_group_from_three_axioms() {
+        let input = super::eqs();
+        let rules = complete(input.clone(), 0);
+        dispv("FINAL RULES:", &rules);
+        assert_eq!(rules.len(), 10);
+        assert_all_joinable(&input, &rules);
+        assert_all_joinable(&complete_eqs(), &rules);
+    }
+
+    fn assert_all_joinable(eqs: &[Equation], rules: &Vec<crate::completion::rule::Rule>) {
+        for eq in eqs {
+            let left = eq.left_term().normalize(rules);
+            let right = eq.right_term().normalize(rules);
+            assert_eq!(left, right, "not joinable: {}", eq);
+        }
     }
 
     pub fn complete_eqs() -> Vec<Equation> {
@@ -223,7 +245,7 @@ pub mod tests {
                            "x y: Int | p![y p![m!y x]] = x", // y + (-y + x) = x
                            "| m!o; = o;", // -0 = 0
                            "x: Int | m!m!x = x", // --x = x
-                           "x y: Int | m!p![x y] = p![m!x m!y]", // -(x + y) = -y + -x
+                           "x y: Int | m!p![x y] = p![m!y m!x]", // -(x + y) = -y + -x
                         ];
         input_rules.iter()
             .map(|r| eq(r, &types, &opers, &ctxts)).collect()
