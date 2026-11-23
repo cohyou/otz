@@ -31,9 +31,12 @@ pub fn analyse(
     if lpo_gr(left.clone(), right.clone()) {
         // left > right
         Some(Rule::new(context, names, left.clone(), right.clone()))
-    } else {
+    } else if lpo_gr(right.clone(), left.clone()) {
         // left < right
         Some(Rule::new(context, names, right.clone(), left.clone()))
+    } else {
+        // 比較不能（例: 可換律）。停止性を壊すので規則にはしない
+        None
     }
 }
 
@@ -115,36 +118,42 @@ impl TermInner {
     }
 }
 
+/// 辞書式経路順序 (LPO) による厳密な比較 t1 >_lpo t2。
+/// 演算子の優先順位は OperId の大小。Int/Str は全ての関数適用より小さい定数とみなし、
+/// 異なる定数同士は比較不能とする。
 fn lpo_gr(t1: Rc<TermInner>, t2: Rc<TermInner>) -> bool {
-    lpo_gr_eq(t1.clone(), t2.clone()) && !lpo_gr_eq(t2.clone(), t1.clone())
-}
-
-fn lpo_gr_eq(t1: Rc<TermInner>, t2: Rc<TermInner>) -> bool {
-    // println!("lpo_gr_eq: t1: {:?}, t2: {:?}", t1, t2);
+    use TermInner::{Fun, Int, RuledVar, Str, Var};
     match (t1.as_ref(), t2.as_ref()) {
-        (t, TermInner::Var(xi)) => !occur(&Var::Id(xi.clone()), t),
-        (t, TermInner::RuledVar(xi, rid, kind)) => occur(&Var::Ruled(xi.clone(), *rid, kind.clone()), t),
-        (TermInner::Var(_), _) | (TermInner::RuledVar(_, _, _), _) => false,
-        (TermInner::Fun(f1, args1), TermInner::Fun(f2, args2)) => {
-            (
-                f1 == f2 &&
-                lex_gr_eq(lpo_gr_eq, args1.clone(), args2.clone()) &&
-                args2.iter().all(|arg2| lpo_gr_eq(t1.clone(), arg2.clone()) )
-            ) ||
-            (
-                f1 > f2 &&
-                args2.iter().all(|arg2| lpo_gr(t1.clone(), arg2.clone()))
-            ) ||
-            args1.iter().any(|arg1| lpo_gr_eq(arg1.clone(), t2.clone()))
+        // 変数は何よりも大きくならない
+        (Var(_) | RuledVar(_, _, _), _) => false,
+        // s > x  ⇔  x が s に出現し、かつ s ≠ x（左が変数のケースは上で除外済み）
+        (s, Var(x)) => occur(&crate::completion::subst::Var::Id(x.clone()), s),
+        (s, RuledVar(x, rid, kind)) => {
+            occur(&crate::completion::subst::Var::Ruled(x.clone(), *rid, kind.clone()), s)
         }
-        (TermInner::Fun(_, _), TermInner::Str(_)) => true,
-        (TermInner::Str(_), TermInner::Fun(_, _), ) => false,
-        (TermInner::Fun(_, _), TermInner::Int(_)) => true,
-        (TermInner::Int(_), TermInner::Fun(_, _), ) => false,
-        (TermInner::Str(_), TermInner::Str(_)) => false,  // 比較できないが。。
-        (TermInner::Int(_), TermInner::Int(_)) => false,  // 比較できないが。。
-        (TermInner::Str(_), TermInner::Int(_)) => false,  // 比較できないが。。
-        (TermInner::Int(_), TermInner::Str(_)) => false,  // 比較できないが。。
+        (Fun(f, args1), t) => {
+            // (a) ある引数 si が si ≥ t
+            args1.iter().any(|si| lpo_gr_eq(si.clone(), t2.clone()))
+                || match t {
+                    Fun(g, args2) => {
+                        let dominates_args = || args2.iter().all(|tj| lpo_gr(t1.clone(), tj.clone()));
+                        if f > g {
+                            // (b) f > g かつ全ての tj について s > tj
+                            dominates_args()
+                        } else if f == g && args1.len() == args2.len() {
+                            // (c) 引数列が辞書式に大きく、かつ全ての tj について s > tj
+                            lex_gr(args1, args2) && dominates_args()
+                        } else {
+                            false
+                        }
+                    }
+                    // 定数は全ての関数適用より小さい
+                    Int(_) | Str(_) => true,
+                    _ => false,
+                }
+        }
+        // 定数同士・定数と関数適用は比較不能／小さい
+        (Int(_) | Str(_), _) => false,
         _ => {
             dbg!(&t1, &t2);
             unimplemented!();
@@ -152,26 +161,24 @@ fn lpo_gr_eq(t1: Rc<TermInner>, t2: Rc<TermInner>) -> bool {
     }
 }
 
+fn lpo_gr_eq(t1: Rc<TermInner>, t2: Rc<TermInner>) -> bool {
+    t1 == t2 || lpo_gr(t1, t2)
+}
+
 /// 変数vが項tに含まれるか
 fn occur(v: &Var, t: &TermInner) -> bool {
     t.vars().contains(&v.clone())
 }
 
-fn lex_gr_eq(gr_eq: fn(Rc<TermInner>, Rc<TermInner>) -> bool, ts1: Vec<Rc<TermInner>>, ts2: Vec<Rc<TermInner>>) -> bool {
-    match ts1.cmp(&ts2) {
-        Ordering::Greater => true,
-        Ordering::Less => false,
-        Ordering::Equal => {
-            for (x, y) in ts1.iter().zip(&ts2) {
-                if gr_eq(x.clone(), y.clone()) && !gr_eq(y.clone(), x.clone()) {
-                    return true;
-                } else if !(gr_eq(x.clone(), y.clone()) && gr_eq(y.clone(), x.clone())) {
-                    return false;
-                }
-            }
-            true
+/// LPO の辞書式拡張（同じ長さの引数列に対する厳密比較）
+fn lex_gr(ts1: &[Rc<TermInner>], ts2: &[Rc<TermInner>]) -> bool {
+    for (x, y) in ts1.iter().zip(ts2) {
+        if x == y {
+            continue;
         }
+        return lpo_gr(x.clone(), y.clone());
     }
+    false
 }
 
 #[cfg(test)]
