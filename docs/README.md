@@ -33,3 +33,7 @@
 - [ADR-0001: 固定 type-side と MVP の状態](decisions/0001-fixed-type-side.md)
 - [ADR-0002: Query + Patch アクション](decisions/0002-query-and-patch.md)
 - [ADR-0003: 領域・遷移・論理レイヤーの分離](decisions/0003-separate-layers.md)
+- [ADR-0004: インスタンスの等しさにスキーマの公理を含める](decisions/0004-equality-includes-schema-axioms.md)
+- [ADR-0005: マッチの行き先は生成元に限り、全域で有限なインスタンスを前提とする](decisions/0005-match-targets-are-generators.md)
+- [ADR-0006: LPO の優先順位では定数を最も小さくする](decisions/0006-lpo-precedence-constants-lowest.md)
+- [ADR-0007: マッチの表現と列挙の方針](decisions/0007-match-representation.md)
