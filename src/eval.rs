@@ -213,6 +213,15 @@ mod tests {
 
     /// #for x y: Tp のように同じ型の複数変数がある場合、
     /// それぞれ独立に要素を割り当てた直積の環境がすべて得られること。
+    ///
+    /// 実際のクエリ構文では以下に対応する(#where等は無し):
+    ///   #instance i
+    ///   #for e1 e2: Emp
+    /// Empが2件なら、(e1,e2)の組は (e1,e1)(e1,e2)(e2,e1)(e2,e2) の4通り。
+    /// これはEmpテーブル自身とのCROSS JOIN(自己結合)に相当する。
+    /// 修正前は1つの要素をe1,e2両方に割り当てていたため、
+    /// (e1,e1)(e2,e2)のような対角成分しか得られず、
+    /// (e1,e2)(e2,e1)のような異なる要素同士の組が漏れていた。
     #[test]
     fn test_eval_generators_cross_product_same_type() {
         let tp = Type::Unary(TypeId(1));
@@ -239,6 +248,18 @@ mod tests {
 
     /// 型が異なる複数の#for行(エンティティ間のjoin)も、
     /// マージされた1つのcontextとして直積が取れること。
+    ///
+    /// 実際のクエリ構文では以下に対応する(#where等は無し):
+    ///   #instance i
+    ///   #for e: Emp
+    ///   #for d: Dept
+    /// Empが2件・Deptが1件なら、(e,d)の組は2通り。
+    /// これはEmpとDeptのCROSS JOIN(全組み合わせ)に相当する
+    /// (実務上は続けて `#where wrk!e = d` のように書いて
+    ///  INNER JOIN相当に絞ることが多いが、このテストはその手前の
+    ///  「直積が正しく生成されるか」だけを見ている)。
+    /// 修正前は#for行ごとに別のcontextとして扱われ、
+    /// eとdを両方含む環境が1件も生成されなかった。
     #[test]
     fn test_eval_generators_cross_product_different_types() {
         let tp1 = Type::Unary(TypeId(1));
