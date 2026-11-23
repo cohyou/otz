@@ -15,6 +15,15 @@
 - [GitHub: 数式の記述](https://docs.github.com/ja/get-started/writing-on-github/working-with-advanced-formatting/writing-mathematical-expressions)
 - [GitHub: Mermaid diagrams](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/creating-diagrams)
 
+## 項書換え・補完の文献
+
+2026-11-23 に Claude Code と行った、LPO の修正と可換律に関する議論（[research-roadmap R1-a](research-roadmap.md#r1-a-向き付けできない等式可換律などの扱い)）で挙がった定番文献。URL は付けていない。
+
+- D. E. Knuth, P. B. Bendix, "Simple Word Problems in Universal Algebras", 1970 — Knuth–Bendix 補完の原典。群の 3 公理から 10 本の完備な規則が得られる例を含む（`completion::tests::test_complete_group_from_three_axioms`）。
+- F. Baader, T. Nipkow, *Term Rewriting and All That*, Cambridge University Press, 1998 — 簡約順序、LPO、補完の標準的な教科書。
+- L. Bachmair, N. Dershowitz, D. A. Plaisted, "Completion Without Failure", 1989 — 順序付き補完（unfailing completion）。
+- G. E. Peterson, M. E. Stickel, "Complete Sets of Reductions for Some Equational Theories", JACM, 1981 — AC を法とした補完。
+
 ## 検討した関連概念・システム
 
 CQL / Algebraic Databases、Schema / Instance / Data Migration、Frozen Instance、Powerlifted、PDDL / STRIPS、Blocks World / Logistics、SAT/SMT、TRS、Congruence Closure、e-graphs、Chase、Maude / Maude-SE、Curry / Needed Narrowing、DPO / SqPO、Span / Cospan、Doctrine / Hyperdoctrine、[C, Set/W]、Dynamic Logic、Petri Nets、Open Petri Nets、HTN、PbR、Monad Instances、T-Hyperdoctrine。
@@ -30,6 +39,7 @@ CQL / Algebraic Databases、Schema / Instance / Data Migration、Frozen Instance
 - 2026-11-20: システム設計・モデル検査、複数システムの静的・動的貼り合わせ、共有インターフェース。
 - 2026-11-21: 最小アクション言語、Entity/Equation Patch、永続 ID、更新・整合性の詳細。Monad instances と T-hyperdoctrine。
 - 2026-11-23: GitHub 実装管理への移行・設計の保存。
+- 2026-11-23（Claude Code）: テストの土台の整備。LPO の誤りの修正、比較不能な等式の保留、可換律を扱う方法の整理（research-roadmap R1-a）。
 
 ## 古いメモ
 
