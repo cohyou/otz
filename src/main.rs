@@ -52,7 +52,13 @@ mod qu {
         
         let mut q = Query::default();
         q.0.push(query_entity_file(&types, &opers, &ctxts));
-        let queried = eval(instance, q);
+        let queried = match eval(instance, q) {
+            Ok(queried) => queried,
+            Err(err) => {
+                eprintln!("query evaluation failed: {}", err);
+                std::process::exit(1);
+            }
+        };
 
         println!("{}", queried);
     }
@@ -76,6 +82,6 @@ mod qu {
 fn _comp() {
     use crate::completion::complete;
     use crate::completion::eqs;
-    let rules = complete(eqs(), 0);
+    let rules = complete(eqs(), crate::completion::CompletionLimits::default()).unwrap();
     crate::util::dispv("result:", &rules);
 }

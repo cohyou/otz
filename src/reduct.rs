@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::{
-    completion::complete,
+    completion::{complete, CompletionError, CompletionLimits},
     completion::critical_pairs::prepare_rules,
     equation::Equation,
     instance::Instance,
@@ -22,22 +22,23 @@ impl Instance {
     /// インスタンスで成り立つ等式を判定するための書換え規則。
     /// データの等式とスキーマの公理（constraints）をまとめて補完する。
     /// 向き付けできない等式が残った場合は不完全になる（健全性は保たれる）。
-    pub fn equality_rules(&self) -> Vec<Rule> {
+    /// 補完が上限（CompletionLimits::default()）までに終わらなければ CompletionError を返す。
+    pub fn equality_rules(&self) -> Result<Vec<Rule>, CompletionError> {
         let eqs = self
             .data
             .iter()
             .chain(self.schema.constraints.iter())
             .cloned()
             .collect::<Vec<_>>();
-        complete(eqs, 0)
+        complete(eqs, CompletionLimits::default())
     }
 
     /// 等式 eq がインスタンスから導けるか。
     /// 何度も判定する場合は、equality_rules() を一度だけ計算して
     /// Equation::holds_under を使う方が効率がよい。
     #[allow(dead_code)]
-    pub fn deducible(&self, eq: &Equation) -> bool {
-        eq.holds_under(&self.equality_rules())
+    pub fn deducible(&self, eq: &Equation) -> Result<bool, CompletionError> {
+        Ok(eq.holds_under(&self.equality_rules()?))
     }
 }
 

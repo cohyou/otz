@@ -1,7 +1,7 @@
 use std::{collections::HashMap, rc::Rc};
 
 use crate::{
-    completion::subst::{Subst, Var}, context::Context, equation::Equation, id::{OperId, TypeId, VarId}, instance::{Elem, Instance}, symbol_table::Names, term::{Term, TermInner}
+    completion::{subst::{Subst, Var}, CompletionError}, context::Context, equation::Equation, id::{OperId, TypeId, VarId}, instance::{Elem, Instance}, symbol_table::Names, term::{Term, TermInner}
 };
 
 /// A tableau over a schema S is a pair of:
@@ -30,7 +30,9 @@ pub struct QueryEntity {
     pub keys: Vec<(OperId, VarId, TermInner)>,
 }
 
-pub fn eval(instance: Instance, query: Query) -> Instance {
+/// クエリを評価して出力インスタンスを作る。
+/// マッチの判定や値の正規化に使う補完が上限までに終わらなければ CompletionError を返す。
+pub fn eval(instance: Instance, query: Query) -> Result<Instance, CompletionError> {
     let saturated = instance.saturate();
 
     // generator
@@ -38,14 +40,14 @@ pub fn eval(instance: Instance, query: Query) -> Instance {
         query_entity.matches(&saturated)
     })
     // .inspect(|subst| { dbg!(&subst); })
-    .collect::<Vec<_>>();
+    .collect::<Result<Vec<_>, _>>()?;
 
     let elems = matches.into_iter().flatten().map(|m| {
         Elem::Subst(m.into_subst())
     }).collect::<Vec<_>>();
 
     // #return・#keys の値の正規化にも、マッチの判定と同じ規則（データ + スキーマの公理）を使う
-    let rules = saturated.equality_rules();
+    let rules = saturated.equality_rules()?;
 
     // attの処理
     let attrs = query.0.iter().map(|qe| {
@@ -127,12 +129,12 @@ pub fn eval(instance: Instance, query: Query) -> Instance {
                     
     let data = [attrs, keys].concat();
 
-    Instance {
+    Ok(Instance {
         names: instance.names.clone(),
         schema: instance.schema,
         elems: elems,
         data: data,
-    }
+    })
 }
 
 /// クエリのマッチ（証人）。frozen instance F_Q からインスタンス I への準同型
@@ -159,7 +161,7 @@ impl Match {
 
 impl QueryEntity {
     /// この QueryEntity の tableau（#for と #where）のマッチを列挙する
-    pub fn matches(&self, instance: &Instance) -> Vec<Match> {
+    pub fn matches(&self, instance: &Instance) -> Result<Vec<Match>, CompletionError> {
         matches(instance, &self.fr, &self.wh)
     }
 }
@@ -172,14 +174,14 @@ impl QueryEntity {
 ///
 /// - 変数の行き先は、I の生成元（#elem で宣言した要素）のうち型が合うもの。
 /// - wh の各等式は、データの等式とスキーマの公理から導けるかで判定する
-///   （Instance::equality_rules）。
+///   （Instance::equality_rules）。その補完が上限までに終わらなければ CompletionError を返す。
 /// - 結果の順序は決定的: 変数を VarId の昇順（#for で宣言した順）に並べ、
 ///   各変数の行き先を I.elems の順（#elem で宣言した順）に並べたときの辞書式順序。
 ///   VarId の小さい変数ほど上位の桁になる。
 ///
 /// Uber-flower の評価では、マッチが eval(Q)(I)(t) の生成元になる:
 /// eval(Q)(I)(t) := { [v_i → e_i] | I ⊢ eq[v_i → e_i], ∀eq ∈ wh(t), ∀e_i ∈ I_EA(s_i) }
-pub fn matches(instance: &Instance, fr: &Context, wh: &[Equation]) -> Vec<Match> {
+pub fn matches(instance: &Instance, fr: &Context, wh: &[Equation]) -> Result<Vec<Match>, CompletionError> {
     // fr の各変数に、型の合う要素を独立に割り当てた環境（直積）をすべて作る。
     // Context は HashMap で反復順が実行ごとに変わるので、VarId 順に並べてから直積を作る。
     let mut vars = fr.0.iter().collect::<Vec<_>>();
@@ -207,14 +209,14 @@ pub fn matches(instance: &Instance, fr: &Context, wh: &[Equation]) -> Vec<Match>
     );
 
     if wh.is_empty() {
-        return substs.into_iter().map(Match).collect();
+        return Ok(substs.into_iter().map(Match).collect());
     }
 
     // 補完は一度だけ行い、すべての候補の判定で使い回す
-    let rules = instance.equality_rules();
+    let rules = instance.equality_rules()?;
 
     // すべての等式を満たす必要がある(all)
-    substs
+    let matches = substs
         .into_iter()
         .filter(|subst| {
             wh.iter().all(|eq| {
@@ -232,7 +234,8 @@ pub fn matches(instance: &Instance, fr: &Context, wh: &[Equation]) -> Vec<Match>
             })
         })
         .map(Match)
-        .collect()
+        .collect();
+    Ok(matches)
 }
 
 impl TermInner {
@@ -285,7 +288,7 @@ mod tests {
             ..Default::default()
         };
 
-        let substs = query_entity.matches(&instance);
+        let substs = query_entity.matches(&instance).unwrap();
         // 2変数 x 2要素 = 4通りの直積になっているはず(修正前は2通りだった)
         assert_eq!(substs.len(), 4);
     }
@@ -328,7 +331,7 @@ mod tests {
             ..Default::default()
         };
 
-        let substs = query_entity.matches(&instance);
+        let substs = query_entity.matches(&instance).unwrap();
         // tp1の要素2つ x tp2の要素1つ = 2通り
         assert_eq!(substs.len(), 2);
     }
@@ -379,6 +382,7 @@ mod tests {
         vars.sort();
         query_entity
             .matches(&instance.saturate())
+            .unwrap()
             .iter()
             .map(|m| {
                 vars.iter()
@@ -444,5 +448,49 @@ mod tests {
         for _ in 0..10 {
             assert_eq!(sample_matches(query), expected);
         }
+    }
+
+    /// 補完が停止しない公理を持つインスタンスでは、matches は返ってこなくなるのではなく、
+    /// 上限で打ち切ってエラーを返す（#16）。
+    /// example/schema/diverge.schema の公理 f(g(f(x))) = g(f(x)) は、補完が停止しない。
+    #[test]
+    fn test_matches_diverging_completion() {
+        use crate::{completion::CompletionError, context_table::CtxtTable, symbol_table::SymbolTable};
+        use combine::EasyParser;
+
+        let types = SymbolTable::<TypeId>::new();
+        let opers = SymbolTable::<OperId>::new();
+        let ctxts = CtxtTable::new();
+        let instance = crate::parser::parse_instance_with(
+            "example/instance/diverge.instance",
+            &types,
+            &opers,
+            &ctxts,
+        );
+        let query_entity = crate::parser::query::query_entity_parser::<combine::easy::Stream<&str>>(
+            &types, &opers, &ctxts,
+        )
+        .easy_parse("#for x: A\n#where f!x = x")
+        .unwrap()
+        .0;
+
+        let started = std::time::Instant::now();
+        let result = query_entity.matches(&instance.saturate());
+        assert!(
+            matches!(result, Err(CompletionError::RuleSizeExceeded { .. })),
+            "{:?}",
+            result
+        );
+        // 打ち切りは早い段階で起きる（上限の目安。実際は 1 秒よりずっと短い）
+        assert!(started.elapsed() < std::time::Duration::from_secs(10));
+
+        // #where が無ければ補完は不要なので、停止しない公理があってもマッチを列挙できる
+        let no_where = crate::parser::query::query_entity_parser::<combine::easy::Stream<&str>>(
+            &types, &opers, &ctxts,
+        )
+        .easy_parse("#for y: A")
+        .unwrap()
+        .0;
+        assert_eq!(no_where.matches(&instance.saturate()).unwrap().len(), 2);
     }
 }
