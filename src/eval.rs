@@ -54,9 +54,7 @@ pub fn eval(instance: Instance, query: Query) -> Instance {
             let attrs = elems.iter().filter_map(|e| {
                 if let Elem::Subst(subst) = e {
                     let substed_term = term.substitute(subst);
-                    let subst_vec = subst.0.iter().map(|(varid, inner)| {
-                        (varid.clone(), inner.clone())
-                    }).collect::<Vec<_>>();
+                    let subst_vec = subst.sorted_entries();
 
                     let right_term = Term {
                         context: Rc::new(Context::default()),
@@ -90,9 +88,7 @@ pub fn eval(instance: Instance, query: Query) -> Instance {
             let keys = elems.iter().filter_map(|e| {
                 if let Elem::Subst(subst) = e {
                     let substed_term = term.substitute(subst);
-                    let subst_vec = subst.0.iter().map(|(varid, inner)| {
-                        (varid.clone(), inner.clone())
-                    }).collect::<Vec<_>>();
+                    let subst_vec = subst.sorted_entries();
 
                     let keys_map = HashMap::from([(
                         Var::Id(varid.clone()),
@@ -100,7 +96,7 @@ pub fn eval(instance: Instance, query: Query) -> Instance {
                     )]);
                     let keys_subst = Subst::new(keys_map);
                     let right_subst = subst.compose(&keys_subst);
-                    let right_subst_vec = right_subst.0.iter().map(|(varid, inner)| {
+                    let right_subst_vec = right_subst.sorted_entries().into_iter().map(|(varid, inner)| {
                         let term = Term {
                             context: Rc::new(Context(HashMap::new())),
                             names: Rc::new(HashMap::new()),
