@@ -177,13 +177,18 @@ impl QueryEntity {
 /// - 変数の行き先は、I の生成元（#elem で宣言した要素）のうち型が合うもの。
 /// - wh の各等式は、データの等式とスキーマの公理から導けるかで判定する
 ///   （Instance::equality_rules）。
-/// - 結果の順序は規定しない。
+/// - 結果の順序は決定的: 変数を VarId の昇順（#for で宣言した順）に並べ、
+///   各変数の行き先を I.elems の順（#elem で宣言した順）に並べたときの辞書式順序。
+///   VarId の小さい変数ほど上位の桁になる。
 ///
 /// Uber-flower の評価では、マッチが eval(Q)(I)(t) の生成元になる:
 /// eval(Q)(I)(t) := { [v_i → e_i] | I ⊢ eq[v_i → e_i], ∀eq ∈ wh(t), ∀e_i ∈ I_EA(s_i) }
 pub fn matches(instance: &Instance, fr: &Context, wh: &[Equation]) -> Vec<Match> {
     // fr の各変数に、型の合う要素を独立に割り当てた環境（直積）をすべて作る。
-    let substs = fr.0.iter().fold(
+    // Context は HashMap で反復順が実行ごとに変わるので、VarId 順に並べてから直積を作る。
+    let mut vars = fr.0.iter().collect::<Vec<_>>();
+    vars.sort_by_key(|(varid, _)| *varid);
+    let substs = vars.into_iter().fold(
         vec![Subst::default()],
         |partials, (varid, tp)| {
             let mut next = Vec::new();
@@ -333,7 +338,8 @@ mod tests {
     }
 
     /// サンプルのインスタンス（example/instance/i.instance）とクエリを同じ記号表で読み込み、
-    /// マッチを「変数↦要素」の文字列にして、順序によらない形で返す。
+    /// マッチを「変数↦要素」の文字列にして、matches が返した順に返す。
+    /// 1 つのマッチの中も、変数を VarId 順（#for で宣言した順）に並べる。
     fn sample_matches(query: &str) -> Vec<String> {
         use crate::{context_table::CtxtTable, id::Symbol, symbol_table::SymbolTable};
         use combine::EasyParser;
@@ -373,22 +379,18 @@ mod tests {
             other => panic!("element expected: {:?}", other),
         };
 
-        let mut rows = query_entity
+        let mut vars = query_entity.fr.0.keys().collect::<Vec<_>>();
+        vars.sort();
+        query_entity
             .matches(&instance.saturate())
             .iter()
             .map(|m| {
-                let mut kv = query_entity
-                    .fr
-                    .0
-                    .keys()
-                    .map(|v| format!("{}↦{}", var_names[v], elem_name(m.get(v).unwrap())))
-                    .collect::<Vec<_>>();
-                kv.sort();
-                kv.join(",")
+                vars.iter()
+                    .map(|v| format!("{}↦{}", var_names[*v], elem_name(m.get(v).unwrap())))
+                    .collect::<Vec<_>>()
+                    .join(",")
             })
-            .collect::<Vec<_>>();
-        rows.sort();
-        rows
+            .collect()
     }
 
     /// Hom(F_Q, I) に対応するマッチの列挙（バックログ C-03）
@@ -418,11 +420,33 @@ mod tests {
     #[case("#for e: Emp\n#where last!e = \"Gauss\"", &["e↦e1"])]
     // 型の異なる変数の結合
     #[case("#for e: Emp\n#for d: Dept\n#where wrk!e = d\n#where sec!d = e", &[
-        "d↦d1,e↦e3", "d↦d2,e↦e6", "d↦d3,e↦e5",
+        "e↦e3,d↦d1", "e↦e5,d↦d3", "e↦e6,d↦d2",
     ])]
     // 条件なし: 型の合う全要素
     #[case("#for e: Emp", &["e↦e1", "e↦e2", "e↦e3", "e↦e4", "e↦e5", "e↦e6", "e↦e7"])]
     fn test_matches(#[case] query: &str, #[case] expected: &[&str]) {
+        // 期待値は列挙順そのもの（ソートしない）
         assert_eq!(sample_matches(query), expected);
+    }
+
+    /// マッチの列挙順序は決定的（#15）。
+    /// #for で先に宣言した変数（VarId が小さい）が上位の桁になり、各桁は #elem の宣言順に進む。
+    #[rstest::rstest]
+    // x が上位: x の宣言順（e1, e2, …）に並ぶ
+    #[case("#for x y: Emp\n#where mgr!x = y", &[
+        "x↦e1,y↦e1", "x↦e2,y↦e4", "x↦e3,y↦e3", "x↦e4,y↦e4",
+        "x↦e5,y↦e1", "x↦e6,y↦e7", "x↦e7,y↦e7",
+    ])]
+    // 同じ条件で宣言順を入れ替えると y が上位になり、y の宣言順に並ぶ。
+    // 名前のソート順とは異なる順序になることも確かめている
+    #[case("#for y x: Emp\n#where mgr!x = y", &[
+        "y↦e1,x↦e1", "y↦e1,x↦e5", "y↦e3,x↦e3", "y↦e4,x↦e2",
+        "y↦e4,x↦e4", "y↦e7,x↦e6", "y↦e7,x↦e7",
+    ])]
+    fn test_matches_order(#[case] query: &str, #[case] expected: &[&str]) {
+        // HashMap の反復順は HashMap ごとに変わり得るので、何度か読み直して同じ順序になることを確かめる
+        for _ in 0..10 {
+            assert_eq!(sample_matches(query), expected);
+        }
     }
 }
