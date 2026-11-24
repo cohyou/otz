@@ -149,7 +149,7 @@ impl Match {
     /// 変数 var の行き先の要素
     #[allow(dead_code)]
     pub fn get(&self, var: &VarId) -> Option<&Rc<TermInner>> {
-        self.0 .0.get(&Var::Id(var.clone()))
+        self.0.0.get(&Var::Id(var.clone()))
     }
 
     pub fn as_subst(&self) -> &Subst {
@@ -341,13 +341,12 @@ mod tests {
         let types = SymbolTable::<TypeId>::new();
         let opers = SymbolTable::<OperId>::new();
         let ctxts = CtxtTable::new();
-        let src = std::fs::read_to_string("example/instance/i.instance").unwrap();
-        let instance = crate::parser::instance::instance_parser::<combine::easy::Stream<&str>>(
-            &types, &opers, &ctxts,
-        )
-        .easy_parse(src.as_ref())
-        .unwrap()
-        .0;
+        let instance = crate::parser::parse_instance_with(
+            "example/instance/i.instance",
+            &types,
+            &opers,
+            &ctxts,
+        );
         let query_entity = crate::parser::query::query_entity_parser::<combine::easy::Stream<&str>>(
             &types, &opers, &ctxts,
         )
