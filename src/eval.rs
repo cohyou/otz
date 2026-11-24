@@ -34,15 +34,18 @@ pub fn eval(instance: Instance, query: Query) -> Instance {
     let saturated = instance.saturate();
 
     // generator
-    let substs = query.0.iter().map(|query_entity| {
-        eval_generators(&saturated, query_entity)
+    let matches = query.0.iter().map(|query_entity| {
+        query_entity.matches(&saturated)
     })
     // .inspect(|subst| { dbg!(&subst); })
     .collect::<Vec<_>>();
 
-    let elems = substs.iter().flatten().map(|s| {
-        Elem::Subst(s.clone())
+    let elems = matches.into_iter().flatten().map(|m| {
+        Elem::Subst(m.into_subst())
     }).collect::<Vec<_>>();
+
+    // #return・#keys の値の正規化にも、マッチの判定と同じ規則（データ + スキーマの公理）を使う
+    let rules = saturated.equality_rules();
 
     // attの処理
     let attrs = query.0.iter().map(|qe| {
@@ -55,8 +58,6 @@ pub fn eval(instance: Instance, query: Query) -> Instance {
                         (varid.clone(), inner.clone())
                     }).collect::<Vec<_>>();
 
-                    // TODO: to_ruleが左->右であることを仮定している
-                    let rules = instance.data.iter().map(Equation::to_rule).collect::<Vec<_>>();
                     let right_term = Term {
                         context: Rc::new(Context::default()),
                         names: Rc::new(Names::default()),
@@ -105,8 +106,6 @@ pub fn eval(instance: Instance, query: Query) -> Instance {
                             names: Rc::new(HashMap::new()),
                             inner: inner.clone(),
                         };
-                        // TODO: to_ruleが左->右であることを仮定している
-                        let rules = instance.data.iter().map(Equation::to_rule).collect::<Vec<_>>();
                         let inner = term.normalize(&rules).inner.clone();
                         (varid.clone(), inner)
                     }).collect::<Vec<_>>();
@@ -140,13 +139,51 @@ pub fn eval(instance: Instance, query: Query) -> Instance {
     }
 }
 
-/// define the generators of entity tin eval(Q)(I) to be those I_EA environments for fr(t) which satisfy wh(t).
-/// t: entity
-/// fr(t) := {−−−→ v_i : s_i}:
-/// eval(Q)(I)(t) := { [−−−−→v_i→e_i] | I⊢eq[−−−−→v_i→e_i], ∀eq ∈ wh(t), ∀e_i ∈ I_EA(s_i)}
-fn eval_generators(instance: &Instance, query_entity: &QueryEntity) -> Vec<Subst> {
-    // fr(t)の各変数に対して、型の合う要素を独立に割り当てた環境(直積)をすべて作る。
-    let substs = query_entity.fr.0.iter().fold(
+/// クエリのマッチ（証人）。frozen instance F_Q からインスタンス I への準同型
+/// m: F_Q → I を、#for の各変数の行き先（I の要素）で表したもの。
+/// 異なる変数が同じ要素に移ってもよい（非単射のマッチ）。
+#[derive(Clone, Debug, PartialEq)]
+pub struct Match(Subst);
+
+impl Match {
+    /// 変数 var の行き先の要素
+    #[allow(dead_code)]
+    pub fn get(&self, var: &VarId) -> Option<&Rc<TermInner>> {
+        self.0.0.get(&Var::Id(var.clone()))
+    }
+
+    pub fn as_subst(&self) -> &Subst {
+        &self.0
+    }
+
+    pub fn into_subst(self) -> Subst {
+        self.0
+    }
+}
+
+impl QueryEntity {
+    /// この QueryEntity の tableau（#for と #where）のマッチを列挙する
+    pub fn matches(&self, instance: &Instance) -> Vec<Match> {
+        matches(instance, &self.fr, &self.wh)
+    }
+}
+
+/// クエリ Q = (fr, wh) のインスタンス I におけるマッチ全体
+///
+///     Sol(Q, I) ≅ Hom(F_Q, I)
+///
+/// を列挙する。fr は型付き変数の context（#for）、wh は等式の連言（#where）。
+///
+/// - 変数の行き先は、I の生成元（#elem で宣言した要素）のうち型が合うもの。
+/// - wh の各等式は、データの等式とスキーマの公理から導けるかで判定する
+///   （Instance::equality_rules）。
+/// - 結果の順序は規定しない。
+///
+/// Uber-flower の評価では、マッチが eval(Q)(I)(t) の生成元になる:
+/// eval(Q)(I)(t) := { [v_i → e_i] | I ⊢ eq[v_i → e_i], ∀eq ∈ wh(t), ∀e_i ∈ I_EA(s_i) }
+pub fn matches(instance: &Instance, fr: &Context, wh: &[Equation]) -> Vec<Match> {
+    // fr の各変数に、型の合う要素を独立に割り当てた環境（直積）をすべて作る。
+    let substs = fr.0.iter().fold(
         vec![Subst::default()],
         |partials, (varid, tp)| {
             let mut next = Vec::new();
@@ -168,11 +205,18 @@ fn eval_generators(instance: &Instance, query_entity: &QueryEntity) -> Vec<Subst
         },
     );
 
+    if wh.is_empty() {
+        return substs.into_iter().map(Match).collect();
+    }
+
+    // 補完は一度だけ行い、すべての候補の判定で使い回す
+    let rules = instance.equality_rules();
+
     // すべての等式を満たす必要がある(all)
     substs
         .into_iter()
         .filter(|subst| {
-            query_entity.wh.iter().all(|eq| {
+            wh.iter().all(|eq| {
                 let left_substed = eq.left_term().substitute(subst);
                 let right_substed = eq.right_term().substitute(subst);
 
@@ -182,12 +226,11 @@ fn eval_generators(instance: &Instance, query_entity: &QueryEntity) -> Vec<Subst
                     left: left_substed.inner,
                     right: right_substed.inner,
                 };
-                println!("substituted_equation: {}", substituted_equation);
-                // substituted_equationがsaturatedから導けるかどうか
-                // TODO: 同じ型だとcompleteが複数回走るので効率が悪い
-                instance.deducible(&substituted_equation)
+                // println!("substituted_equation: {}", substituted_equation);
+                substituted_equation.holds_under(&rules)
             })
         })
+        .map(Match)
         .collect()
 }
 
@@ -241,7 +284,7 @@ mod tests {
             ..Default::default()
         };
 
-        let substs = eval_generators(&instance, &query_entity);
+        let substs = query_entity.matches(&instance);
         // 2変数 x 2要素 = 4通りの直積になっているはず(修正前は2通りだった)
         assert_eq!(substs.len(), 4);
     }
@@ -284,8 +327,102 @@ mod tests {
             ..Default::default()
         };
 
-        let substs = eval_generators(&instance, &query_entity);
+        let substs = query_entity.matches(&instance);
         // tp1の要素2つ x tp2の要素1つ = 2通り
         assert_eq!(substs.len(), 2);
+    }
+
+    /// サンプルのインスタンス（example/instance/i.instance）とクエリを同じ記号表で読み込み、
+    /// マッチを「変数↦要素」の文字列にして、順序によらない形で返す。
+    fn sample_matches(query: &str) -> Vec<String> {
+        use crate::{context_table::CtxtTable, id::Symbol, symbol_table::SymbolTable};
+        use combine::EasyParser;
+
+        let types = SymbolTable::<TypeId>::new();
+        let opers = SymbolTable::<OperId>::new();
+        let ctxts = CtxtTable::new();
+        let instance = crate::parser::parse_instance_with(
+            "example/instance/i.instance",
+            &types,
+            &opers,
+            &ctxts,
+        );
+        let query_entity = crate::parser::query::query_entity_parser::<combine::easy::Stream<&str>>(
+            &types, &opers, &ctxts,
+        )
+        .easy_parse(query)
+        .unwrap()
+        .0;
+
+        let var_names: HashMap<VarId, String> = ctxts
+            .current_var_table()
+            .into_iter()
+            .filter_map(|(name, sym)| match sym {
+                Symbol::Var(id) => Some((id, name)),
+                _ => None,
+            })
+            .collect();
+        let elem_name = |t: &TermInner| match t {
+            TermInner::Fun(id, args) if args.is_empty() => opers
+                .table
+                .borrow()
+                .iter()
+                .find(|(_, v)| *v == id)
+                .map(|(k, _)| k.clone())
+                .unwrap(),
+            other => panic!("element expected: {:?}", other),
+        };
+
+        let mut rows = query_entity
+            .matches(&instance.saturate())
+            .iter()
+            .map(|m| {
+                let mut kv = query_entity
+                    .fr
+                    .0
+                    .keys()
+                    .map(|v| format!("{}↦{}", var_names[v], elem_name(m.get(v).unwrap())))
+                    .collect::<Vec<_>>();
+                kv.sort();
+                kv.join(",")
+            })
+            .collect::<Vec<_>>();
+        rows.sort();
+        rows
+    }
+
+    /// Hom(F_Q, I) に対応するマッチの列挙（バックログ C-03）
+    ///
+    /// サンプルのデータ（抜粋）:
+    ///   wrk: e1↦d3, e2↦d2, e3↦d1, e4↦d2, e5↦d3, e6↦d2（e7 はデータなし）
+    ///   mgr: e1↦e1, e2↦e4, e3↦e3, e4↦e4, e5↦e1, e6↦e7（e7 はデータなし）
+    /// スキーマの公理:
+    ///   mgr(mgr(e)) = mgr(e),  wrk(mgr(e)) = wrk(e)
+    /// e7 にはデータが無いが、公理から次が導ける:
+    ///   wrk(e7) = wrk(mgr(e6)) = wrk(e6) = d2
+    ///   mgr(e7) = mgr(mgr(e6)) = mgr(e6) = e7
+    #[rstest::rstest]
+    // 成立する: 複数のマッチ。e7 はスキーマの公理を使って初めてマッチする
+    #[case("#for e: Emp\n#where wrk!e = d2;", &["e↦e2", "e↦e4", "e↦e6", "e↦e7"])]
+    // 成立しない: e2 を上司に持つ社員はいない
+    #[case("#for e: Emp\n#where mgr!e = e2;", &[])]
+    // 変数が複数: 異なる変数が同じ要素に移る非単射のマッチ（x↦e1,y↦e1 など）を含む
+    #[case("#for x y: Emp\n#where mgr!x = y", &[
+        "x↦e1,y↦e1", "x↦e2,y↦e4", "x↦e3,y↦e3", "x↦e4,y↦e4",
+        "x↦e5,y↦e1", "x↦e6,y↦e7", "x↦e7,y↦e7",
+    ])]
+    // 外部キーを辿る: 途中の mgr の等式（Emp 型）も使う必要がある
+    #[case("#for e: Emp\n#where wrk!mgr!e = d2;", &["e↦e2", "e↦e4", "e↦e6", "e↦e7"])]
+    // 属性（Int / Str）の等式
+    #[case("#for e: Emp\n#where sal!e = 250", &["e↦e1"])]
+    #[case("#for e: Emp\n#where last!e = \"Gauss\"", &["e↦e1"])]
+    // 型の異なる変数の結合
+    #[case("#for e: Emp\n#for d: Dept\n#where wrk!e = d\n#where sec!d = e", &[
+        "d↦d1,e↦e3", "d↦d2,e↦e6", "d↦d3,e↦e5",
+    ])]
+    // 条件なし: 型の合う全要素
+    #[case("#for e: Emp", &["e↦e1", "e↦e2", "e↦e3", "e↦e4", "e↦e5", "e↦e6", "e↦e7"])]
+    fn test_matches(#[case] query: &str, #[case] expected: &[&str]) {
+        assert_eq!(sample_matches(query), expected);
     }
 }
