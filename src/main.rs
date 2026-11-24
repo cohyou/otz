@@ -40,9 +40,11 @@ mod qu {
         let opers = SymbolTable::<OperId>::new();
         let ctxts = CtxtTable::new();
 
-        use crate::parser::parse_instance;
+        // クエリと同じ記号表で読む。別々の記号表だと、同じ名前の要素・演算子が
+        // 同じ ID になる保証がない（宣言の順番がたまたま一致したときだけ動く）
+        use crate::parser::parse_instance_with;
         let path = "example/instance/i.instance";
-        let instance = parse_instance(path);
+        let instance = parse_instance_with(path, &types, &opers, &ctxts);
         println!("Parsed Instance:\n{}", instance);
 
         use crate::eval::eval;
