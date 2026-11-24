@@ -29,7 +29,7 @@ pub struct Subst(pub HashMap<Var, Rc<TermInner>>);
 
 impl std::fmt::Display for Subst {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.iter().for_each(|(k, v)| {
+        self.sorted_entries().into_iter().for_each(|(k, v)| {
             let _ = writeln!(f, "{:?}: {:?}", k, v);
         });
         write!(f, "")
@@ -37,6 +37,18 @@ impl std::fmt::Display for Subst {
 }
 
 impl Subst {
+    /// 変数の順（Var の Ord。Var::Id 同士なら VarId の昇順）に並べた (変数, 項) の列。
+    /// 中身は HashMap で反復順が実行ごとに変わるので、表示や Vec への変換ではこれを使う。
+    pub fn sorted_entries(&self) -> Vec<(Var, Rc<TermInner>)> {
+        let mut entries = self
+            .0
+            .iter()
+            .map(|(var, inner)| (var.clone(), inner.clone()))
+            .collect::<Vec<_>>();
+        entries.sort_by(|(a, _), (b, _)| a.cmp(b));
+        entries
+    }
+
     pub fn new(map: HashMap<Var, Rc<TermInner>>) -> Self {
         map.into()
     }
@@ -194,5 +206,26 @@ mod tests {
 
         let r = t.unwrap().0.substitute(&Subst(subst));
         dbg!(&r);
+    }
+
+    /// sorted_entries は、挿入順や HashMap の反復順によらず VarId の昇順に並べる
+    #[test]
+    fn test_sorted_entries() {
+        use crate::{completion::subst::Var, id::{OperId, VarId}, term::TermInner};
+        use std::rc::Rc;
+
+        let elem = |i| Rc::new(TermInner::Fun(OperId(i), vec![]));
+        for _ in 0..10 {
+            let mut subst = Subst::default();
+            for i in [3, 0, 2, 1] {
+                subst.insert(Var::Id(VarId(i)), elem(i));
+            }
+            let vars = subst
+                .sorted_entries()
+                .into_iter()
+                .map(|(var, _)| var)
+                .collect::<Vec<_>>();
+            assert_eq!(vars, (0..4).map(|i| Var::Id(VarId(i))).collect::<Vec<_>>());
+        }
     }
 }
