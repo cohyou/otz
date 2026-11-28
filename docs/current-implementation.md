@@ -22,7 +22,7 @@
 
 1. `QueryEntity.fr` は単一の `Context`。PR #1（マージ済み）で、`#for` 句の複数変数・複数エンティティを直積として列挙するようになった。
 2. `eval::matches` は、`#for` の各変数の行き先を `Instance.elems`（`#elem` で宣言した生成元）から選ぶ。`#where` の等式は、データの等式とスキーマの公理をまとめて補完した規則（`Instance::equality_rules`）で判定する。サンプルのインスタンスで、成立する／しない、複数のマッチ、非単射のマッチ、外部キーを辿る等式、属性の等式、結合をテストしている。生成元ではない項（データが無い要素の `wrk!e7` など）は、マッチの行き先にならない。type-side の値（`Int` 型の変数など）を行き先にするマッチは未対応。
-3. 等式の判定（`Instance::equality_rules`、`Instance::deducible`）は、データの等式とスキーマの公理（`constraints`）の両方を使う。`Equation::to_rule`（向きを決めずに規則にする）は使われなくなった。Knuth–Bendix 補完（`completion::complete`）の規則の向き付けは LPO（`completion/analyse.rs`）で行う。LPO で比較できない等式（可換律など）は規則にせず保留するため、その場合の補完結果は不完全になる（停止性を優先し、健全性は保つ）。LPO の優先順位では、定数（0 引数の記号）を全ての関数記号より小さくしている。そのため `wrk(e2) = d2` は `wrk(e2) → d2` の向きになり、正規形はできるだけインスタンスの要素になる。
+3. 等式の判定（`Instance::equality_rules`、`Instance::deducible`）は、データの等式とスキーマの公理（`constraints`）の両方を使う。`Equation::to_rule`（向きを決めずに規則にする）は使われなくなった。Knuth–Bendix 補完（`completion::complete`）の規則の向き付けは LPO（`completion/analyse.rs`）で行う。LPO で比較できない等式（可換律など）は規則にせず保留するため、その場合の補完結果は不完全になる（停止性を優先し、健全性は保つ）。LPO の優先順位では、定数（0 引数の記号）を全ての関数記号より小さくしている。そのため `wrk(e2) = d2` は `wrk(e2) → d2` の向きになり、正規形はできるだけインスタンスの要素になる。補完には決定的な上限（`CompletionLimits`。既定はステップ数 5,000、規則 1,000 本、規則の項の大きさは入力の最大の 3 倍）があり、超えると `CompletionError` を返す。停止しない補完の多くは、項の大きさの上限で早めに打ち切られる。そのため `Instance::equality_rules`・`eval::matches`・`eval::eval` は `Result` を返す。
 4. `src/instance.rs` の構造には、独立した永続 Entity ID と原子的 Entity/Equation Patch API は見えていない（ただし別ファイルや既存機能に存在しないと断定はしない）。
 5. `src/main.rs` は実行例の入口で、計画探索のエンドツーエンド経路はこの範囲では確認できなかった。
 

@@ -1,0 +1,6 @@
+#schema diverge
+
+#elem a b: A
+
+#data f!a; = b;
+#data g!b; = a;

@@ -1,0 +1,8 @@
+#theory "test"
+
+#sort A
+
+#fkey f: A -> A
+#fkey g: A -> A
+
+#rule x: A | f![g![f![x]]] = g![f![x]]
