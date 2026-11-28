@@ -9,7 +9,7 @@
 
 ## Decision
 
-- **API**: `eval::matches(instance, fr, wh) -> Vec<Match>` と `QueryEntity::matches(&instance)` を公開する。
+- **API**: `eval::matches(instance, &tableau) -> Result<Vec<Match>, CompletionError>` と `Tableau::matches(&instance)` を公開する。`Tableau { fr, wh }` は `#for` と `#where` の組で、`QueryEntity` はこれに `#return` / `#keys` を加えたもの（#20）。
 - **表現**: `Match` は、$F_Q \to I$ の準同型を「`#for` の各変数の行き先」で表す。現状は `Subst` を包んだ型で、行き先は要素の記号 `TermInner::Fun(OperId, [])`。
 - **非単射**: 異なる変数が同じ要素に移るマッチを許す（$\operatorname{Hom}$ は単射を要求しない）。
 - **順序**: 同じ入力に対しては、同じ順序でマッチを返す（計画の再現性のため）。順序は、変数を `VarId` の昇順（`#for` で宣言した順）に並べ、各変数の行き先を `Instance.elems` の順（`#elem` で宣言した順）に並べたときの辞書式順序とする。先に宣言した変数ほど上位の桁になる（#15 で実装）。
@@ -20,6 +20,6 @@
 | --- | --- | --- |
 | 列挙の順序 | `matches` の中で変数を `VarId` 順に並べてから直積を作る（`Context` 自体は `HashMap` のまま） | #15 で対応済み |
 | 行き先の表現 | 要素の `OperId` を ID の代わりに使う | B-03 で `EntityId` を導入するときに変える（#18） |
-| tableau の型 | `fr` と `wh` を別々に渡す | D-01 で `Tableau` 型を切り出す（#20） |
+| tableau の型 | `Tableau { fr, wh }` を切り出し、`QueryEntity` が持つ | #20 で対応済み。D-01 のアクションの適用条件にも使う |
 | 列挙の方式 | 直積をすべて作ってから絞り込み、`Vec` で返す | 遅延列挙と早めの絞り込み（#21、C-05） |
 | 非単射の禁止 | 等式の連言では「x ≠ y」を書けない | 書き方を決める（#22、C-04） |
