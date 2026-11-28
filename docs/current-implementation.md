@@ -10,7 +10,7 @@
 - `src/main.rs`: `parse_instance`、クエリファイルのパース、`eval` の実行と出力という試行経路がある。
 - `src/schema.rs`: `Schema { theory, entities, fkeys, attrs, constraints }`。
 - `src/instance.rs`: `Instance { names, schema, elems, data }`。`elems` は `Elem::Oper` / `Elem::Subst`、`data` は `Vec<Equation>`。
-- `src/eval.rs`: `Query(Vec<QueryEntity>)`、`QueryEntity { entity, fr, wh, ret, keys }`、`eval(instance, query) -> Instance`。インスタンスの `saturate()` を呼び、マッチを列挙して出力インスタンスを構築している。マッチの列挙は `matches(instance, fr, wh) -> Vec<Match>`（`QueryEntity::matches`）として独立した API になっている。
+- `src/eval.rs`: `Query(Vec<QueryEntity>)`、`Tableau { fr, wh }`、`QueryEntity { entity, tableau, ret, keys }`、`eval(instance, query) -> Result<Instance, CompletionError>`。インスタンスの `saturate()` を呼び、マッチを列挙して出力インスタンスを構築している。マッチの列挙は `matches(instance, &tableau) -> Result<Vec<Match>, CompletionError>`（`Tableau::matches`）として独立した API になっている。`#return` / `#keys` を持たない `Tableau` だけを渡せるので、アクションの適用条件にもそのまま使える。
 - `src/parser/query/`: `#for` / `#where` / `#return` / `#keys` に関するパーサー。
 - `src/completion/`, `src/reduct.rs`, `src/saturate.rs`: 等式補完、項書換え、飽和に関連する実装。
 

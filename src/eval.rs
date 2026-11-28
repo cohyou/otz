@@ -19,11 +19,25 @@ use crate::{
 #[derive(Default)]
 pub struct Query(pub Vec<QueryEntity>);
 
+/// tableau (fr, wh)。#for の型付き変数の context と、#where の等式の連言。
+/// Uber-flower の各エンティティの条件にも、アクションの適用条件 Q_a にも使う。
+#[derive(Default, Debug, Clone)]
+pub struct Tableau {
+    pub fr: Context,
+    pub wh: Vec<Equation>,
+}
+
+impl Tableau {
+    /// この tableau のマッチを列挙する（matches を参照）
+    pub fn matches(&self, instance: &Instance) -> Result<Vec<Match>, CompletionError> {
+        matches(instance, self)
+    }
+}
+
 #[derive(Default, Debug)]
 pub struct QueryEntity {
     pub entity: Vec<TypeId>,
-    pub fr: Context,
-    pub wh: Vec<Equation>,
+    pub tableau: Tableau,
     pub ret: Vec<(OperId, TermInner)>,
     // keys: t -> t'
     // transform from tableau for t' to tableau for t
@@ -37,7 +51,7 @@ pub fn eval(instance: Instance, query: Query) -> Result<Instance, CompletionErro
 
     // generator
     let matches = query.0.iter().map(|query_entity| {
-        query_entity.matches(&saturated)
+        query_entity.tableau.matches(&saturated)
     })
     // .inspect(|subst| { dbg!(&subst); })
     .collect::<Result<Vec<_>, _>>()?;
@@ -159,18 +173,11 @@ impl Match {
     }
 }
 
-impl QueryEntity {
-    /// この QueryEntity の tableau（#for と #where）のマッチを列挙する
-    pub fn matches(&self, instance: &Instance) -> Result<Vec<Match>, CompletionError> {
-        matches(instance, &self.fr, &self.wh)
-    }
-}
-
 /// クエリ Q = (fr, wh) のインスタンス I におけるマッチ全体
 ///
 ///     Sol(Q, I) ≅ Hom(F_Q, I)
 ///
-/// を列挙する。fr は型付き変数の context（#for）、wh は等式の連言（#where）。
+/// を列挙する。Q は tableau で、fr は型付き変数の context（#for）、wh は等式の連言（#where）。
 ///
 /// - 変数の行き先は、I の生成元（#elem で宣言した要素）のうち型が合うもの。
 /// - wh の各等式は、データの等式とスキーマの公理から導けるかで判定する
@@ -181,7 +188,8 @@ impl QueryEntity {
 ///
 /// Uber-flower の評価では、マッチが eval(Q)(I)(t) の生成元になる:
 /// eval(Q)(I)(t) := { [v_i → e_i] | I ⊢ eq[v_i → e_i], ∀eq ∈ wh(t), ∀e_i ∈ I_EA(s_i) }
-pub fn matches(instance: &Instance, fr: &Context, wh: &[Equation]) -> Result<Vec<Match>, CompletionError> {
+pub fn matches(instance: &Instance, tableau: &Tableau) -> Result<Vec<Match>, CompletionError> {
+    let Tableau { fr, wh } = tableau;
     // fr の各変数に、型の合う要素を独立に割り当てた環境（直積）をすべて作る。
     // Context は HashMap で反復順が実行ごとに変わるので、VarId 順に並べてから直積を作る。
     let mut vars = fr.0.iter().collect::<Vec<_>>();
@@ -283,12 +291,12 @@ mod tests {
         fr.0.insert(VarId(0), tp.clone());
         fr.0.insert(VarId(1), tp.clone());
 
-        let query_entity = QueryEntity {
+        let tableau = Tableau {
             fr,
             ..Default::default()
         };
 
-        let substs = query_entity.matches(&instance).unwrap();
+        let substs = tableau.matches(&instance).unwrap();
         // 2変数 x 2要素 = 4通りの直積になっているはず(修正前は2通りだった)
         assert_eq!(substs.len(), 4);
     }
@@ -326,12 +334,12 @@ mod tests {
         fr.0.insert(VarId(0), tp1.clone());
         fr.0.insert(VarId(1), tp2.clone());
 
-        let query_entity = QueryEntity {
+        let tableau = Tableau {
             fr,
             ..Default::default()
         };
 
-        let substs = query_entity.matches(&instance).unwrap();
+        let substs = tableau.matches(&instance).unwrap();
         // tp1の要素2つ x tp2の要素1つ = 2通り
         assert_eq!(substs.len(), 2);
     }
@@ -378,9 +386,10 @@ mod tests {
             other => panic!("element expected: {:?}", other),
         };
 
-        let mut vars = query_entity.fr.0.keys().collect::<Vec<_>>();
+        let mut vars = query_entity.tableau.fr.0.keys().collect::<Vec<_>>();
         vars.sort();
         query_entity
+            .tableau
             .matches(&instance.saturate())
             .unwrap()
             .iter()
@@ -475,7 +484,7 @@ mod tests {
         .0;
 
         let started = std::time::Instant::now();
-        let result = query_entity.matches(&instance.saturate());
+        let result = query_entity.tableau.matches(&instance.saturate());
         assert!(
             matches!(result, Err(CompletionError::RuleSizeExceeded { .. })),
             "{:?}",
@@ -491,6 +500,6 @@ mod tests {
         .easy_parse("#for y: A")
         .unwrap()
         .0;
-        assert_eq!(no_where.matches(&instance.saturate()).unwrap().len(), 2);
+        assert_eq!(no_where.tableau.matches(&instance.saturate()).unwrap().len(), 2);
     }
 }
